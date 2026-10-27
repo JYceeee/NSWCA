@@ -46,6 +46,18 @@ export function AllPlayersPage() {
   const [query, setQuery] = useState('')
   const [dialog, setDialog] = useState<{ kind: 'view' | 'edit'; player: Player } | { kind: 'new' } | null>(null)
   const rows = searchPlayers(players, query)
+  /** Ticked rows (player ids). */
+  const [ticked, setTicked] = useState<Set<string>>(new Set())
+  useEffect(() => setTicked((t) => new Set([...t].filter((id) => players.some((p) => p.id === id)))), [players])
+  const shownTicked = rows.filter((p) => ticked.has(p.id))
+  const allShownTicked = rows.length > 0 && shownTicked.length === rows.length
+  const toggle = (id: string) =>
+    setTicked((t) => {
+      const n = new Set(t)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
 
   /** Saves details; entries in tournaments that haven't started pairing get the new details too. */
   const save = (details: PlayerDetails, id?: string) => {
@@ -86,6 +98,21 @@ export function AllPlayersPage() {
     toast(`${fullName(p)} deleted`, { label: 'Undo', run: () => commit((b) => ({ ...b, players: [...(b.players ?? []), p] })) })
   }
 
+  const removeTicked = async () => {
+    const list = players.filter((p) => ticked.has(p.id))
+    if (!list.length) return
+    const ok = await confirm({
+      title: `Delete ${list.length} player${list.length === 1 ? '' : 's'}?`,
+      message: 'They’re removed from All players. Their tournament entries stay as they are. You can undo straight after.',
+      confirmLabel: 'Delete',
+      danger: true,
+    })
+    if (!ok) return
+    commit((b) => ({ ...b, players: (b.players ?? []).filter((x) => !ticked.has(x.id)) }))
+    setTicked(new Set())
+    toast(`${list.length} player${list.length === 1 ? '' : 's'} deleted`, { label: 'Undo', run: () => commit((b) => ({ ...b, players: [...(b.players ?? []), ...list] })) })
+  }
+
   return (
     <div className="brand-page ap-page">
       <header className="page-head ap-head">
@@ -110,12 +137,40 @@ export function AllPlayersPage() {
             {rows.length} of {players.length}
           </span>
         )}
+        {ticked.size > 0 && (
+          <div className="ae-selection">
+            <strong>{ticked.size} selected</strong>
+            <button className="ui-btn ui-btn--small ui-btn--danger" onClick={removeTicked}>
+              <Icon name="trash" size={14} /> Delete selected
+            </button>
+            <button className="ui-btn ui-btn--small" onClick={() => setTicked(new Set())}>
+              Clear
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="ae-wrap">
         <table className="ae-table ap-table">
           <thead>
             <tr>
+              <th className="ae-tick">
+                <input
+                  type="checkbox"
+                  aria-label="Tick all shown players"
+                  checked={allShownTicked}
+                  ref={(el) => {
+                    if (el) el.indeterminate = shownTicked.length > 0 && !allShownTicked
+                  }}
+                  onChange={() =>
+                    setTicked((t) => {
+                      const n = new Set(t)
+                      for (const p of rows) allShownTicked ? n.delete(p.id) : n.add(p.id)
+                      return n
+                    })
+                  }
+                />
+              </th>
               {['Last name', 'First name', 'DOB', 'Gender', 'FIDE ID', 'ACF ID', 'Status', 'Action'].map((h) => (
                 <th key={h}>
                   <span className="ae-sort">{h}</span>
@@ -125,7 +180,10 @@ export function AllPlayersPage() {
           </thead>
           <tbody>
             {rows.map((p) => (
-              <tr key={p.id}>
+              <tr key={p.id} className={ticked.has(p.id) ? 'ae-row--ticked' : undefined}>
+                <td className="ae-tick">
+                  <input type="checkbox" aria-label={`Tick ${fullName(p)}`} checked={ticked.has(p.id)} onChange={() => toggle(p.id)} />
+                </td>
                 <td className="ap-last">{p.lastName}</td>
                 <td>{p.firstName || <span className="muted">—</span>}</td>
                 <td>{dmy(p.dob) || <span className="muted">—</span>}</td>
@@ -150,7 +208,7 @@ export function AllPlayersPage() {
             ))}
             {!rows.length && (
               <tr>
-                <td className="ae-empty muted" colSpan={8}>
+                <td className="ae-empty muted" colSpan={9}>
                   {players.length ? 'No players match your search.' : 'No players yet. Add one with New player, or enter players in a tournament.'}
                 </td>
               </tr>
