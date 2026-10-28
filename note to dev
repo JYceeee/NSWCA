@@ -1,0 +1,7 @@
+# local deploy
+npm run dev
+
+# Build the site
+
+npm run build
+This creates the dist folder (index.html, assets/ and py/).

@@ -1,5 +1,6 @@
 // Byes, points and Gacrux (TRF) input / output for tournaments paired on this site.
 import { format, parseISO } from 'date-fns'
+import { fedForCountry } from '../data/countries'
 import { detailsOf, fideRatingFor } from '../data/eventDetails'
 import { toDate } from '../data/events'
 import { boardScore, isFinished } from '../events/pairings'
@@ -203,11 +204,5 @@ export const topColour = (e: CalEvent): 'w' | 'b' => {
 /** Pairing-allocated bye value as a Gacrux score letter. */
 export const pabLetter = (e: CalEvent) => ({ 1: 'W', 0.5: 'D', 0: 'Z' })[pabPoints(e) as 1 | 0.5 | 0] ?? 'W'
 
-/** FIDE federation code for a profile citizenship (ISO 3166 alpha-2), for the common cases. */
-const FED: Record<string, string> = {
-  AU: 'AUS', NZ: 'NZL', GB: 'ENG', US: 'USA', CA: 'CAN', IN: 'IND', CN: 'CHN', SG: 'SGP', MY: 'MAS', ID: 'INA', PH: 'PHI', VN: 'VIE', HK: 'HKG',
-  MO: 'MAC', JP: 'JPN', KR: 'KOR', TW: 'TPE', TH: 'THA', DE: 'GER', FR: 'FRA', ES: 'ESP', IT: 'ITA', NL: 'NED', RU: 'RUS', UA: 'UKR', PL: 'POL',
-  IR: 'IRI', LK: 'SRI', BD: 'BAN', PK: 'PAK', ZA: 'RSA', IE: 'IRL', NO: 'NOR', SE: 'SWE', DK: 'DEN', FI: 'FIN', CH: 'SUI', AT: 'AUT', GR: 'GRE',
-  PT: 'POR', BR: 'BRA', AR: 'ARG', MX: 'MEX', FJ: 'FIJ', PG: 'PNG',
-}
-export const fedCode = (citizenship: string) => (citizenship ? FED[citizenship] ?? citizenship : '')
+/** FIDE federation code for a profile citizenship (ISO 3166 alpha-2). */
+export const fedCode = (citizenship: string) => (citizenship ? fedForCountry(citizenship) : '')

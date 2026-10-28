@@ -837,7 +837,9 @@ textarea.ds-input { resize: vertical; min-height: 120px; }
 .ds-field-sample { display: flex; flex-direction: column; gap: 14px; width: 100%; }
 
 /* ---------- Profile ---------- */
-.profile-page > :not(.page-head) { max-width: 880px; }
+/* Sized by the page's own width (not the window), so it adapts with the sidebar open or closed. */
+.profile-page { container-type: inline-size; }
+.profile-page > :not(.page-head) { max-width: 1040px; }
 .pf-header { display: flex; align-items: center; gap: 18px; padding: 20px 22px; background: var(--t-card); border: 1px solid var(--t-border); border-radius: 16px; flex-wrap: wrap; }
 .pf-header-text { flex: 1; min-width: 200px; }
 .pf-header-text h2 { margin: 0; font-size: 22px; }
@@ -887,13 +889,26 @@ textarea.ds-input { resize: vertical; min-height: 120px; }
 .combo-list li.combo-selected { font-weight: 700; }
 .combo-list li.combo-empty { color: var(--t-muted); cursor: default; }
 .profile-page .save-bar { margin-top: 0; }
-@media (max-width: 700px) {
+@container (max-width: 860px) {
+  .pf-edit-row { grid-template-columns: 150px minmax(0, 1fr); }
+}
+@container (max-width: 720px) {
   .pf-cards { display: flex; flex-direction: column; }
   /* Let the cards from both columns interleave by their order. */
   .pf-col { display: contents; }
+}
+@container (max-width: 600px) {
   .pf-edit-row { grid-template-columns: 1fr; gap: 6px; }
   .pf-edit-row > .ds-field-label { padding-top: 0; }
   .pf-section { padding: 14px 14px 4px; }
+  .pf-header { padding: 16px; gap: 14px; }
+  .pf-header > .ui-btn { width: 100%; justify-content: center; }
+  .pf-card { padding: 14px; }
+}
+@container (max-width: 420px) {
+  .pf-row { grid-template-columns: 1fr; gap: 2px; }
+  .pf-phone { grid-template-columns: 1fr; }
+  .profile-page .save-bar { flex-wrap: wrap; }
 }
 
 /* ---------- Event details ---------- */
@@ -1000,9 +1015,9 @@ textarea.ds-input { resize: vertical; min-height: 120px; }
 .ed-standings { max-height: 520px; overflow: auto; }
 .ed-standings thead th { position: sticky; top: 0; background: var(--t-card); }
 .ed-row-you td { background: var(--t-primary-tint); font-weight: 700; }
-.pf-tabs { margin: 0 0 16px; max-width: 880px; }
+.pf-tabs { margin: 0 0 16px; max-width: 1040px; }
 .pf-tab-empty { padding: 20px 0; }
-.pf-tab-section { margin-bottom: 22px; max-width: 880px; }
+.pf-tab-section { margin-bottom: 22px; max-width: 1040px; }
 .pf-tab-section h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--t-muted); font-family: var(--font-ui); }
 .pf-list { display: flex; flex-direction: column; gap: 8px; }
 .pf-list-item {
@@ -1013,7 +1028,7 @@ textarea.ds-input { resize: vertical; min-height: 120px; }
 .pf-list-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .pf-list-main > span { color: var(--t-muted); font-size: 13.5px; }
 .pf-list-item > svg { color: var(--t-muted); flex: none; }
-.pf-results { max-width: 880px; background: var(--t-card); border: 1px solid var(--t-border); border-radius: 14px; padding: 8px 18px 4px; overflow-x: auto; }
+.pf-results { max-width: 1040px; background: var(--t-card); border: 1px solid var(--t-border); border-radius: 14px; padding: 8px 18px 4px; overflow-x: auto; }
 .pf-results a { color: var(--t-link); font-weight: 600; }
 
 /* ---------- Pairings ---------- */
@@ -1171,3 +1186,11 @@ textarea.ds-input { resize: vertical; min-height: 120px; }
 @media (max-width: 520px) { .ev-form-three { grid-template-columns: 1fr; } }
 .ap-status--member { background: var(--t-success-tint); color: var(--t-success); }
 .ap-status--entry { background: var(--t-secondary-tint); color: var(--t-secondary); }
+
+/* ‹ › after a column name: move the column left or right. */
+.col-head { display: inline-flex; align-items: center; gap: 0; white-space: nowrap; }
+.col-move { display: inline-flex; opacity: .45; transition: opacity .12s; }
+th:hover .col-move, .col-move:focus-within { opacity: 1; }
+.col-move button { display: inline-grid; place-items: center; width: 18px; height: 20px; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--t-muted); cursor: pointer; }
+.col-move button:hover:not(:disabled) { background: var(--t-panel); color: var(--t-heading); }
+.col-move button:disabled { opacity: .3; cursor: default; }

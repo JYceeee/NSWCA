@@ -4,7 +4,7 @@ import { useAssetUrl } from '../brand/shared'
 import { useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
 import { Popover } from '../components/Popover'
-import { AU_STATES, COUNTRIES, countryName, dialCode } from '../data/countries'
+import { AU_STATES, COUNTRIES, countryName, dialCode, FEDERATIONS } from '../data/countries'
 import { fmtDate, toDate } from '../data/events'
 import { deleteAsset, putAsset } from '../lib/db'
 import { uid, useBrand } from '../store/BrandStore'
@@ -280,7 +280,6 @@ function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit: () => voi
       <div className="pf-cards">
         <div className="pf-col">
           <Card title="Personal" order={1}>
-            <Row label="Name" value={dash(name)} />
             <Row label="Date of birth" value={p.dob ? format(toDate(p.dob), 'd MMMM yyyy') : '—'} />
             <Row label="Sex" value={dash(p.sex)} />
             <Row label="Citizenship" value={p.citizenship ? countryName(p.citizenship) : '—'} />
@@ -316,8 +315,8 @@ function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit: () => voi
             <Row label="Phone" value={phoneText(p) || '—'} />
           </Card>
           <Card title="Address" order={4}>
-            <Row label="Street" value={dash(p.street)} />
             <Row label="Apartment, suite" value={dash(p.apartment)} />
+            <Row label="Street" value={dash(p.street)} />
             <Row label="Suburb" value={dash(p.suburb)} />
             <Row label="State" value={dash(p.state)} />
             <Row label="Postcode" value={dash(p.postcode)} />
@@ -398,7 +397,8 @@ function RenewHistory({ p }: { p: Profile }) {
 // ---------- Edit ----------
 
 const countryOptions = COUNTRIES.map((c) => ({ value: c.code, label: c.name }))
-const dialOptions = COUNTRIES.map((c) => ({ value: c.code, label: `${c.code} +${c.dial} · ${c.name}`, keywords: `+${c.dial}` }))
+const fedOptions = FEDERATIONS.map((f) => ({ value: f.code, label: `${f.code} · ${f.name}` }))
+const dialOptions =COUNTRIES.map((c) => ({ value: c.code, label: `${c.code} +${c.dial} · ${c.name}`, keywords: `+${c.dial}` }))
 
 function EditProfile({
   p, errors, set, onPhoto, dirty, onCancel, onSave,
@@ -528,7 +528,18 @@ function EditProfile({
         <h3>Your chess level</h3>
         {input('fideId', 'FIDE number', 'E.g. 3209660')}
         {input('acfId', 'ACF ID', 'Australian Chess Federation ID')}
-        {input('federation', 'Federation', fedCode(p.citizenship) ? `${fedCode(p.citizenship)} (from citizenship)` : 'E.g. AUS')}
+        {field(
+          'federation',
+          'Federation',
+          <Combobox
+            ariaLabel="Federation"
+            value={p.federation ?? ''}
+            options={[{ value: '', label: fedCode(p.citizenship) ? `Same as citizenship (${fedCode(p.citizenship)})` : 'None' }, ...fedOptions]}
+            invalid={!!errors.federation}
+            onChange={(federation) => set({ federation })}
+            placeholder="Search federations or codes…"
+          />,
+        )}
         {select('title', 'Title', TITLES.slice(0, 8), 'None')}
         {input('fideStandard', 'FIDE Standard', 'Optional – leave empty if unrated')}
         {input('fideRapid', 'FIDE Rapid', 'Optional – leave empty if unrated')}
@@ -569,8 +580,8 @@ function EditProfile({
 
       <section className="pf-section">
         <h3>Address</h3>
+        {input('apartment', 'Apartment, suite, etc', 'E.g. Unit 5')}
         {input('street', 'Street address', 'E.g. 42 Wallaby Way')}
-        {input('apartment', 'Apartment, suite, etc')}
         {input('suburb', 'Suburb', 'E.g. Sydney')}
         {au ? select('state', 'State', AU_STATES, 'Choose a state') : input('state', 'State', 'State / province / region')}
         {input('postcode', 'Postcode', au ? 'E.g. 2000' : '')}
