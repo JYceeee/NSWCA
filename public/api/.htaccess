@@ -1,0 +1,5 @@
+# Only index.php is reachable; config.php and the _*.php helpers are not.
+<FilesMatch "^(config\.php|config\.sample\.php|_.*\.php)$">
+    Require all denied
+</FilesMatch>
+Options -Indexes

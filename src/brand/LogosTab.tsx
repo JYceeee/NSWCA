@@ -50,8 +50,8 @@ export function LogosTab() {
     const id = uid('asset')
     try {
       await putAsset({ id, name: file.name, type: file.type, blob: file })
-    } catch {
-      return toast('Could not store the file in this browser')
+    } catch (e) {
+      return toast(e instanceof Error ? e.message : 'Could not upload the file')
     }
     setSlot(key, { kind: 'asset', assetId: id, name: file.name, mime: file.type })
   }

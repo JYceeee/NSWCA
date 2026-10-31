@@ -91,6 +91,8 @@ export interface Slices {
   logos: LogoSet[]
   menus: MenuSet[]
   events: EventBook[]
+  /** One item: the content of every page (Admin › Page Config). */
+  pages: PageConfig[]
 }
 
 export type SliceKey = keyof Slices
@@ -102,6 +104,7 @@ export interface Applied {
   logos: string
   menu: string
   events: string
+  pages: string
 }
 
 export interface SavedState extends Slices {
@@ -152,11 +155,13 @@ export interface Profile {
   renewDate: string
   /** Every join and renewal, oldest first. */
   membershipHistory?: { kind: 'join' | 'renew'; date: string }[]
+  /** Set by the server after the first full save: fields switched off in Page Config then turn view-only. */
+  completed?: boolean
 }
 
-export type BrandTab = 'palette' | 'background' | 'logos' | 'typography' | 'components'
+export type BrandTab = 'palette' | 'logos' | 'typography' | 'components'
 
-export type PageId = 'brand' | 'menu' | 'documents' | 'players' | 'events' | 'pairings' | 'profile'
+export type PageId = 'home' | 'contact' | 'brand' | 'menu' | 'pages' | 'documents' | 'players' | 'events' | 'pairings' | 'profile' | 'users' | 'approvals' | 'enquiries'
 export type MenuTab = 'sidebar' | 'topbar' | 'footer'
 /** On light / on dark version of the top bar or footer. */
 export type BarVersion = 'light' | 'dark'
@@ -242,6 +247,14 @@ export interface CalEvent {
   memberOnly?: boolean
   /** Only Australian and New Zealand citizens can enter. */
   citizensOnly?: boolean
+  /** Set by the server: pending / rejected events wait in Review and approval. */
+  status?: 'approved' | 'pending' | 'rejected'
+  /** Set by the server: the user id that created it (TOs edit their own). */
+  createdBy?: number | null
+  /** Set by the server: arbiter user ids assigned to run its pairings. */
+  arbiters?: number[]
+  /** Set by the server: an edit is waiting for an admin (the live version is shown). */
+  pendingChange?: boolean
   /** Full details page (required sections for tournaments). */
   details?: EventDetailsData
   /** People entered through this site. */
@@ -434,4 +447,103 @@ export interface CalViewSettings {
   startHour: number
   endHour: number
   hourHeight: number
+}
+
+// ---------- Page Config ----------
+
+/** auto = worked out from the image's brightness and overlay. */
+export type Tone = 'auto' | 'dark' | 'light'
+
+/** An uploaded background image. */
+export interface PageImage {
+  assetId: string | null
+  fileName: string | null
+  /** Black overlay strength, 0–100. */
+  overlay: number
+  tone: Tone
+  /** Measured on upload, 0 (black) – 1 (white). */
+  luminance: number | null
+}
+
+export type PageLink = { kind: 'none' } | { kind: 'page'; page: PageId } | { kind: 'url'; url: string }
+
+export interface PageButton {
+  id: string
+  label: string
+  link: PageLink
+}
+
+/** Title band of a page. Empty title / intro / label = the app's own wording. */
+export interface PageHeadConfig {
+  menuLabel: string
+  title: string
+  intro: string
+  image: PageImage
+  /** Minimum height, percent of the window. 0 = fit the content. */
+  height: number
+}
+
+export interface GalleryItem {
+  id: string
+  title: string
+  text: string
+  assetId: string | null
+  fileName: string | null
+  button: PageButton
+}
+
+export interface EmphasisItem {
+  id: string
+  title: string
+  text: string
+}
+
+export interface ProjectItem extends GalleryItem {
+  /** Small line above the title, e.g. PROJECT 01. */
+  label: string
+}
+
+export interface HomeConfig {
+  hero: { enabled: boolean; title: string; text: string; image: PageImage; /** Percent of the window height. */ height: number; buttons: PageButton[] }
+  gallery: { enabled: boolean; title: string; text: string; /** Like PageHeadConfig.height. */ height: number; items: GalleryItem[] }
+  emphasis: { enabled: boolean; title: string; image: PageImage; height: number; items: EmphasisItem[]; button: PageButton }
+  projects: {
+    enabled: boolean
+    title: string
+    height: number
+    /** px the sliding panel stops from the image's left edge. */
+    inset: number
+    /** px around the text inside the panel. */
+    padding: number
+    items: ProjectItem[]
+  }
+}
+
+export interface ContactConfig {
+  title: string
+  text: string
+  height: number
+  /** Address, email, phone: one per line. */
+  details: string
+  links: PageButton[]
+  inquiryTypes: string[]
+  /** Shown after sending. */
+  thanks: string
+  /** Staff address enquiries go to ('' = none). Only sent to people who can edit Page Config. */
+  notifyEmail: string
+  /** Emailed to the sender. Only sent to people who can edit Page Config. */
+  autoReply: string
+}
+
+export interface PageConfig {
+  id: string
+  name: string
+  builtin: boolean
+  heads: Record<PageId, PageHeadConfig>
+  home: HomeConfig
+  contact: ContactConfig
+  /** Profile field -> members can change it after their first save. */
+  profileFields: Record<string, boolean>
+  /** Calendar sizes; missing = the older calendar view settings. */
+  calendar: { cellHeight?: Record<CalMode, number>; hourHeight?: number }
 }

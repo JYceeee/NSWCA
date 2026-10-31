@@ -10,7 +10,9 @@ import { dateRangeLabel, fmtTime, timeLabel, toDate } from '../data/events'
 import { toHtml, toPlain } from '../lib/richtext'
 import { resolveColor } from '../lib/theme'
 import { emptyProfile, validate } from '../profile/ProfilePage'
-import { uid, useApplied, useBrand } from '../store/BrandStore'
+import { uid, useApplied, useBrand, useSession } from '../store/BrandStore'
+import { apiPost } from '../lib/api'
+import { StatusBadge } from './EventsPage'
 import type { CalEvent, EventDetailsData, EventEntry } from '../types'
 import { EventForm } from './EventDialogs'
 import { byeFor, byeValues, fedCode, isReleased, scheduledRounds } from '../pairing/engine'
@@ -19,9 +21,10 @@ import { AddPlayerDialog, ImportPlayersDialog } from './PlayersDialogs'
 import { useEventBook } from './useEventBook'
 
 /** Full page for one event: summary header, sections with side contents, entering; or the details editor. */
-export function EventDetailsPage({ id, edit }: { id: string; edit: boolean }) {
+export function EventDetailsPage({ id, edit: wantsEdit }: { id: string; edit: boolean }) {
   const { book, commit } = useEventBook()
   const { navigate } = useBrand()
+  const { can } = useSession()
   const [basicOpen, setBasicOpen] = useState(false)
   const event = book.events.find((e) => e.id === id)
   const back = () => navigate({ page: 'events', eventId: null, eventEdit: false })
@@ -37,6 +40,7 @@ export function EventDetailsPage({ id, edit }: { id: string; edit: boolean }) {
     )
 
   const tournament = isTournament(event, book.categories)
+  const edit = wantsEdit && can('events.edit', event)
   const setEvent = (fn: (e: CalEvent) => CalEvent) => commit((b) => ({ ...b, events: b.events.map((x) => (x.id === id ? fn(x) : x)) }))
 
   return (
@@ -86,6 +90,7 @@ type EntryState =
 
 function useEntryState(event: CalEvent, tournament: boolean): EntryState {
   const { saved } = useBrand()
+  const { user, can } = useSession()
   const { book } = useEventBook()
   const profile = { ...emptyProfile(), ...saved.profile }
   const d = detailsOf(event)
@@ -94,6 +99,8 @@ function useEntryState(event: CalEvent, tournament: boolean): EntryState {
   const mine = profile.email && event.entries?.find((x) => x.email.toLowerCase() === profile.email.toLowerCase())
   if (mine) return { kind: 'entered', entry: mine }
   if (isAfter(new Date(), entriesCloseAt(event))) return { kind: 'blocked', reason: 'Entries closed' }
+  if (!user) return { kind: 'blocked', reason: 'Sign in to enter' }
+  if (!can('events.enter')) return { kind: 'blocked', reason: 'Your role can’t enter events' }
   if (Object.keys(validate(profile)).length) return { kind: 'blocked', reason: 'Complete your profile to enter', profileLink: true }
   if (event.memberOnly && !memberOn(profile, toDate(event.startDate))) return { kind: 'blocked', reason: 'Members only – your membership isn’t valid on the event date' }
   if (event.citizensOnly && !tournament && !isAuNzCitizen(profile)) return { kind: 'blocked', reason: 'Australian and New Zealand citizens only' }
@@ -112,11 +119,16 @@ function DetailsView({
 }) {
   const { book } = useEventBook()
   const { saved, navigate } = useBrand()
+  const { can, needsApproval } = useSession()
   const { toast } = useDialogs()
   const palette = useApplied('palettes')
   const profile = { ...emptyProfile(), ...saved.profile }
   const d = detailsOf(event)
   const cat = book.categories.find((c) => c.id === event.category)
+  const canEdit = can('events.edit', event)
+  /** An approved event's edits wait for an admin. */
+  const viaApproval = canEdit && needsApproval('events.edit', event) && event.status === 'approved'
+  const manage = can('entries.manage', event)
   const draft = tournament && isDraft(event, book.categories)
   const missing = missingSections(event, book.categories)
   const state = useEntryState(event, tournament)
@@ -220,6 +232,7 @@ function DetailsView({
             {cat?.name ?? 'No category'}
           </span>
           {draft && <span className="ev-badge ev-badge--draft">Draft – details missing</span>}
+          <StatusBadge event={event} />
           {event.memberOnly && <span className="ev-badge">Members only</span>}
           {event.citizensOnly && !tournament && <span className="ev-badge">AU & NZ citizens only</span>}
         </div>
@@ -245,15 +258,19 @@ function DetailsView({
         <div className="ed-actions">
           {entryButton}
           <span className="ed-actions-gap" />
-          {tournament && (
+          {tournament && can('events.assignArbiters', event) && <ArbitersButton event={event} />}
+          {canEdit && tournament && (
             <button className="ui-btn" onClick={onEditBasic}>
               Edit name & dates
             </button>
           )}
-          <button className="ui-btn ui-btn--primary" onClick={onEdit}>
-            <Icon name="edit" size={15} /> Edit details
-          </button>
+          {canEdit && (
+            <button className="ui-btn ui-btn--primary" onClick={onEdit}>
+              <Icon name="edit" size={15} /> Edit details
+            </button>
+          )}
         </div>
+        {viaApproval && <p className="muted small ed-approval-note">Your edits to this event are sent to an admin for approval; the current version stays up until then.</p>}
         {draft && (
           <p className="ed-missing">
             Still needed: {missing.map((s) => s.label).join(', ')}.
@@ -286,15 +303,16 @@ function DetailsView({
               <SectionView s={s} d={d} roundAction={(n) => <ByeButton event={event} round={n} setEvent={setEvent} />} />
             </section>
           ))}
-          {tournament && <PairingsSection mode="pairings" event={event} you={profile.email} setEvent={setEvent} />}
-          {tournament && <PairingsSection mode="results" event={event} you={profile.email} setEvent={setEvent} />}
+          {tournament && <PairingsSection mode="pairings" event={event} you={profile.email} setEvent={setEvent} canEdit={can('events.uploadPairings', event)} />}
+          {tournament && <PairingsSection mode="results" event={event} you={profile.email} setEvent={setEvent} canEdit={can('events.uploadPairings', event)} />}
         </div>
         {/* Right-hand column, stays in view while scrolling (below the sections on narrow screens). */}
-        {showEntries && (
+        {showEntries && can('events.viewEntries') && (
           <aside className="ed-side">
             <section id="ed-entries" className="ed-section">
               <div className="ed-section-head">
                 <h2>View entries</h2>
+                {manage && (
                 <div className="ed-section-actions">
                   <button className="ui-btn ui-btn--small" disabled={entriesLocked} title={entriesLocked ? 'Pairings released – entries are locked' : undefined} onClick={() => setPlayers('add')}>
                     <Icon name="plus" size={14} /> Add
@@ -303,6 +321,7 @@ function DetailsView({
                     <Icon name="upload" size={14} /> Import
                   </button>
                 </div>
+                )}
               </div>
               <EntriesList event={event} d={d} you={profile.email} />
               <button className="ui-btn ui-btn--small ed-all-entries" onClick={() => navigate({ page: 'events', eventId: event.id, eventEdit: false, eventEntries: true })}>
@@ -518,10 +537,11 @@ function SectionView({ s, d, roundAction }: { s: SectionDef; d: EventDetailsData
 /** "Byes" on each round row: entered players request a bye until that round is paired. Only the organiser can cancel it. */
 function ByeButton({ event, round, setEvent }: { event: CalEvent; round: number; setEvent: (fn: (e: CalEvent) => CalEvent) => void }) {
   const { saved } = useBrand()
+  const { can } = useSession()
   const { confirm, toast } = useDialogs()
   const email = saved.profile?.email?.toLowerCase()
   const entry = email ? event.entries?.find((x) => x.email.toLowerCase() === email) : undefined
-  if (!entry) return null
+  if (!entry || !can('events.requestBye')) return null
   const bye = byeFor(event, entry.id, round)
   if (bye) {
     const v = byeValues(event).get(bye.id)
@@ -848,5 +868,66 @@ function RowsEditor<T extends { id: string }>({
       </button>
       {after}
     </div>
+  )
+}
+
+// ---------- Arbiters ----------
+
+/** TO / admin: who runs this tournament's pairings, byes and results (Assigned only in Roles and permissions). */
+function ArbitersButton({ event }: { event: CalEvent }) {
+  const session = useSession()
+  const { toast } = useDialogs()
+  const [open, setOpen] = useState(false)
+  const [picked, setPicked] = useState<number[]>(event.arbiters ?? [])
+  const [busy, setBusy] = useState(false)
+  const names = session.arbiters.filter((a) => event.arbiters?.includes(a.id)).map((a) => a.name)
+  const save = async () => {
+    setBusy(true)
+    try {
+      await apiPost('event.arbiters', { id: event.id, userIds: picked })
+      await session.refresh()
+      toast(picked.length ? 'Arbiters assigned' : 'Arbiters removed')
+      setOpen(false)
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'That didn’t work')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <>
+      <button className="ui-btn" onClick={() => (setPicked(event.arbiters ?? []), setOpen(true))} title={names.length ? `Arbiters: ${names.join(', ')}` : 'No arbiters yet'}>
+        <Icon name="users" size={15} /> Arbiters{names.length ? ` (${names.length})` : ''}
+      </button>
+      {open && (
+        <Modal title="Assign arbiters" onClose={() => setOpen(false)} width={440}>
+          <div className="modal-body form">
+            <p className="muted small" style={{ margin: 0 }}>
+              Assigned arbiters can set byes, pair rounds and enter results for {event.name}.
+            </p>
+            {session.arbiters.length ? (
+              <div className="ed-arbiters">
+                {session.arbiters.map((a) => (
+                  <label key={a.id} className="check">
+                    <input type="checkbox" checked={picked.includes(a.id)} onChange={(e) => setPicked(e.target.checked ? [...picked, a.id] : picked.filter((x) => x !== a.id))} />
+                    {a.name}
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">There are no arbiter accounts yet. An admin creates them in User management.</p>
+            )}
+          </div>
+          <div className="modal-actions">
+            <button className="ui-btn" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+            <button className="ui-btn ui-btn--primary" disabled={busy} onClick={save}>
+              Save
+            </button>
+          </div>
+        </Modal>
+      )}
+    </>
   )
 }

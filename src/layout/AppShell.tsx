@@ -4,7 +4,6 @@ import { useSlotUrl } from '../brand/LogosTab'
 import { Modal } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
 import { svgDataUrl, tabTitle } from '../data/logos'
-import { pageLabel } from '../data/menus'
 import { buildMenuVars } from '../lib/menuTheme'
 import { buildThemeVars } from '../lib/theme'
 import { EventsPage } from '../events/EventsPage'
@@ -12,14 +11,22 @@ import { DocumentsPage } from '../admin/DocumentsPage'
 import { AllPlayersPage } from '../admin/AllPlayersPage'
 import { PairingsPage } from '../pairing/PairingsPage'
 import { ProfilePage } from '../profile/ProfilePage'
+import { ApprovalsPage } from '../admin/ApprovalsPage'
+import { UsersPage } from '../admin/UsersPage'
+import { EnquiriesPage } from '../admin/EnquiriesPage'
+import { PageConfigPage } from '../admin/PageConfigPage'
+import { ContactPage } from '../site/ContactPage'
+import { HomePage } from '../site/HomePage'
+import { AccountBar, NoAccess } from '../auth/AccountBar'
 import { MenuPage } from '../menu/MenuPage'
-import { useApplied, useBrand, useSelected } from '../store/BrandStore'
+import { useApplied, useBrand, useSelected, useSession } from '../store/BrandStore'
 import type { BarVersion, LogoSet, MenuSet } from '../types'
 import { AppFooter } from './Footer'
 import { IS_PREVIEW, MobilePreview, usePreviewSync } from './MobilePreview'
 import { AppSidebar } from './Sidebar'
 import { useDarkSurface } from './surface'
 import { TopBar } from './TopBar'
+import { usePageLabel } from './useNav'
 
 /** On the Menu page the chrome previews the menu set being edited; elsewhere it shows the applied one. */
 function useShellMenu(): MenuSet {
@@ -90,6 +97,8 @@ function useVersion(area: 'topbar' | 'footer', menu: MenuSet, autoDark: boolean)
 
 export function AppShell() {
   const { ui } = useBrand()
+  const { can } = useSession()
+  const pageLabel = usePageLabel()
   const menu = useShellMenu()
   useAppTheme(menu)
   useFavicon(useApplied('logos'))
@@ -103,10 +112,16 @@ export function AppShell() {
   const footRef = useRef<HTMLElement>(null)
   const { topbar, footer } = menu
 
-  const topDark = useDarkSurface(topRef, topbar.enabled && topbar.reversed, 'behind', [ui.page])
+  // The reversed bar only comes on once a dark section is behind the whole bar: both its edges.
+  const topBottomDark = useDarkSurface(topRef, topbar.enabled && topbar.reversed, 'behind', [ui.page])
+  const topTopDark = useDarkSurface(topRef, topbar.enabled && topbar.reversed, 'top', [ui.page])
+  const topDark = topBottomDark && topTopDark
   const footDark = useDarkSurface(footRef, footer.enabled && footer.reversed, 'above', [ui.page])
   const topVersion = useVersion('topbar', menu, topDark)
   const footVersion = useVersion('footer', menu, footDark)
+  // Reversed, it is always see-through.
+  const topClear = topDark && topVersion === 'dark'
+  const bleed = ui.page === 'home' || ui.page === 'contact'
 
   useEffect(() => setNavOpen(false), [ui.page])
 
@@ -131,21 +146,34 @@ export function AppShell() {
 
   return (
     <div className={['shell', navOpen && 'shell--nav-open', topbar.enabled && 'shell--topbar'].filter(Boolean).join(' ')}>
-      {topbar.enabled && <TopBar ref={topRef} menu={menu} version={topVersion} toggle={toggle} onPreview={onPreview} />}
+      {topbar.enabled && <TopBar ref={topRef} menu={menu} version={topVersion} clear={topClear} toggle={toggle} onPreview={onPreview} />}
       <div className="shell-body">
         {/* Off = no sidebar on desktop; phones keep the drawer, as the top bar hides its tabs there. */}
         {(menu.sidebar.enabled !== false || mobile) && <AppSidebar menu={menu} mobile={mobile} showHead={!topbar.enabled} onPreview={onPreview} />}
         {!topbar.enabled && toggle}
         <div className="nav-scrim" onClick={() => setNavOpen(false)} />
         <main className="app-main">
-          <div className="app-page">
-            {ui.page === 'brand' && <BrandPage />}
-            {ui.page === 'menu' && <MenuPage />}
-            {ui.page === 'events' && <EventsPage />}
-            {ui.page === 'pairings' && <PairingsPage />}
-            {ui.page === 'documents' && <DocumentsPage />}
-            {ui.page === 'players' && <AllPlayersPage />}
-            {ui.page === 'profile' && <ProfilePage />}
+          <div className={bleed ? 'app-page app-page--bleed' : 'app-page'}>
+            <AccountBar inTopBar={topbar.enabled} />
+            {!can(`page.${ui.page}`) ? (
+              <NoAccess page={pageLabel(ui.page)} />
+            ) : (
+              <>
+                {ui.page === 'home' && <HomePage />}
+                {ui.page === 'contact' && <ContactPage />}
+                {ui.page === 'pages' && <PageConfigPage />}
+                {ui.page === 'enquiries' && <EnquiriesPage />}
+                {ui.page === 'brand' && <BrandPage />}
+                {ui.page === 'menu' && <MenuPage />}
+                {ui.page === 'events' && <EventsPage />}
+                {ui.page === 'pairings' && <PairingsPage />}
+                {ui.page === 'documents' && <DocumentsPage />}
+                {ui.page === 'players' && <AllPlayersPage />}
+                {ui.page === 'profile' && <ProfilePage />}
+                {ui.page === 'users' && <UsersPage />}
+                {ui.page === 'approvals' && <ApprovalsPage />}
+              </>
+            )}
           </div>
           {footer.enabled && <AppFooter ref={footRef} menu={menu} version={footVersion} />}
         </main>
@@ -158,6 +186,7 @@ export function AppShell() {
 
 function NavPrompt() {
   const { navPrompt, resolveNav, saved, ui, draft } = useBrand()
+  const pageLabel = usePageLabel()
   if (!navPrompt) return null
   const to = <strong>{pageLabel(navPrompt.page ?? 'brand')}</strong>
   if (navPrompt.reason === 'entries')
@@ -191,10 +220,21 @@ function NavPrompt() {
         </div>
       </Modal>
     )
+  if (navPrompt.reason === 'pages')
+    return (
+      <Modal title="Save your Page Config changes?" onClose={() => resolveNav('stay')} width={460}>
+        <div className="modal-body">Your page edits aren’t saved yet. Save them before going to {to}, or discard them.</div>
+        <div className="modal-actions">
+          <button className="ui-btn" onClick={() => resolveNav('stay')}>Stay</button>
+          <button className="ui-btn ui-btn--danger" onClick={() => resolveNav('discard')}>Discard</button>
+          <button className="ui-btn ui-btn--primary" onClick={() => resolveNav('apply')} autoFocus>Save</button>
+        </div>
+      </Modal>
+    )
   if (navPrompt.reason === 'events')
     return (
       <Modal title="Save your calendar settings?" onClose={() => resolveNav('stay')} width={460}>
-        <div className="modal-body">The cell height, hours or View by day setting have unsaved changes. Save them before going to {to}, or discard them. (Events are always saved straight away.)</div>
+        <div className="modal-body">The hours or View by day setting have unsaved changes. Save them before going to {to}, or discard them. (Events are always saved straight away.)</div>
         <div className="modal-actions">
           <button className="ui-btn" onClick={() => resolveNav('stay')}>Stay</button>
           <button className="ui-btn ui-btn--danger" onClick={() => resolveNav('discard')}>Discard</button>

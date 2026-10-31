@@ -2,11 +2,12 @@ import { forwardRef, type CSSProperties } from 'react'
 import { LogoImage } from '../brand/LogosTab'
 import { Icon, socialIcon } from '../components/Icon'
 import { logoHeight } from '../data/logos'
-import { pageLabel, SOCIALS } from '../data/menus'
+import { SOCIALS } from '../data/menus'
 import { lookPrefix, mv } from '../lib/menuTheme'
 import { ty } from '../lib/theme'
-import { hashFor, useApplied, useBrand } from '../store/BrandStore'
+import { hashFor, useApplied, useBrand, useSession } from '../store/BrandStore'
 import type { BarVersion, FooterCell, MenuSet } from '../types'
+import { usePageLabel } from './useNav'
 
 /** Footer grid: columns of cells (page links, headings, text, logo, copyright, social icons). */
 export const AppFooter = forwardRef<HTMLElement, { menu: MenuSet; version: BarVersion }>(function AppFooter({ menu, version }, ref) {
@@ -30,6 +31,8 @@ export const AppFooter = forwardRef<HTMLElement, { menu: MenuSet; version: BarVe
 
 export function FooterCellView({ cell, menu, version }: { cell: FooterCell; menu: MenuSet; version: BarVersion }) {
   const { ui, navigate } = useBrand()
+  const { can } = useSession()
+  const pageLabel = usePageLabel()
   const logos = useApplied('logos')
   const p = lookPrefix('footer', version)
   const c = (k: string) => mv(p, `c-${k}`)
@@ -40,6 +43,8 @@ export function FooterCellView({ cell, menu, version }: { cell: FooterCell; menu
     case 'heading':
       return <div style={{ ...ty(`${p}-heading`), color: c('heading') }}>{cell.text}</div>
     case 'page':
+      // A page this role can't open is an empty cell.
+      if (!can(`page.${cell.page}`)) return <span className="ft-empty" style={ty(`${p}-link`)} aria-hidden />
       return (
         <a
           className="ft-link"

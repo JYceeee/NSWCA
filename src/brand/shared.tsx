@@ -7,7 +7,7 @@ import type { Slices, SliceKey } from '../types'
 
 type Item = Slices[SliceKey][number]
 
-const NOUN: Record<SliceKey, string> = { palettes: 'palette', typography: 'typography set', backgrounds: 'background', logos: 'logo set', menus: 'menu set', events: 'event list' }
+const NOUN: Record<SliceKey, string> = { palettes: 'palette', typography: 'typography set', backgrounds: 'background', logos: 'logo set', menus: 'menu set', events: 'event list', pages: 'page config' }
 
 /** Row of pill tabs to switch between items of a slice, plus "+ New". */
 export function ItemSwitcher({ slice, dot, onNew }: { slice: SliceKey; dot?: (item: Item) => ReactNode; onNew: () => void }) {

@@ -15,6 +15,8 @@ function isDarkAt(x: number, y: number, skip: Element): boolean {
   for (let n: Element | null = hit ?? document.body; n; n = n.parentElement) {
     const marked = (n as HTMLElement).dataset?.surface
     if (marked) return marked === 'dark'
+    // A section's backdrop (image, overlay) doesn't decide: the section's data-surface does.
+    if (n.closest('.bg-layer')) continue
     const col = parseColor(getComputedStyle(n).backgroundColor)
     if (col && col.a >= 0.5) return (0.2126 * col.r + 0.7152 * col.g + 0.0722 * col.b) / 255 < 0.5
   }
@@ -22,10 +24,11 @@ function isDarkAt(x: number, y: number, skip: Element): boolean {
 }
 
 /**
- * Whether the page area behind an element is dark. `behind` samples under the element itself
- * (content scrolling under a sticky bar); `above` samples just above it (the section a footer follows).
+ * Whether the page area behind an element is dark. `behind` samples at the element's bottom edge, so a sticky
+ * bar can tell when it overlaps the next section; `top` samples at its top edge (with `behind`: the section
+ * covers the whole bar); `above` samples just above it (the section a footer follows).
  */
-export function useDarkSurface(ref: RefObject<HTMLElement>, enabled: boolean, where: 'behind' | 'above', deps: unknown[]): boolean {
+export function useDarkSurface(ref: RefObject<HTMLElement>, enabled: boolean, where: 'behind' | 'top' | 'above', deps: unknown[]): boolean {
   const [dark, setDark] = useState(false)
   useEffect(() => {
     if (!enabled) return
@@ -36,7 +39,7 @@ export function useDarkSurface(ref: RefObject<HTMLElement>, enabled: boolean, wh
         const el = ref.current
         if (!el) return
         const r = el.getBoundingClientRect()
-        const y = where === 'behind' ? r.top + r.height / 2 : r.top - 4
+        const y = where === 'behind' ? r.bottom - 1 : where === 'top' ? r.top + 1 : r.top - 4
         if (y < 0 || y > window.innerHeight) return
         setDark(isDarkAt(r.left + r.width / 2, y, el))
       })

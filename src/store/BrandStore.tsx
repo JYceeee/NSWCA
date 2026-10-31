@@ -3,41 +3,93 @@ import { builtinBackgrounds } from '../data/backgrounds'
 import { builtinLogos } from '../data/logos'
 import { builtinEvents } from '../data/events'
 import { builtinMenus } from '../data/menus'
+import { builtinPages, normalizePages, pageAssets } from '../data/pages'
+import { SITE_DEFAULTS } from '../data/siteDefaults'
 import { builtinPalettes } from '../data/palettes'
 import { builtinTypography } from '../data/typography'
 import { collectGarbage } from '../lib/db'
 import { IS_PREVIEW } from '../layout/MobilePreview'
-import type { Applied, BarVersion, BrandTab, MenuTab, PageId, Profile, SavedState, SliceKey, Slices } from '../types'
+import { ApiError, apiGet, apiPost, LOCAL_ONLY } from '../lib/api'
+import { ALL_GRANTS, allows, type Grants } from '../data/permissions'
+import type { Applied, BarVersion, BrandTab, CalEvent, MenuTab, PageId, Profile, SavedState, SliceKey, Slices } from '../types'
+import { nextOp, runOp, type DocItem, type ServerState, type SessionUser } from './sync'
 
-const STORAGE_KEY = 'principles:brand:v1'
+/** This browser's own data from before the server (kept for Admin › User management › Import). Used as-is in local-only mode. */
+export const STORAGE_KEY = 'principles:brand:v1'
+/** The last state the server sent: shown at start-up and when the server can't be reached (read-only). */
+const CACHE_KEY = 'principles:server-cache:v1'
 const UI_KEY = 'principles:ui:v1'
 
 type Item = Slices[SliceKey][number]
 
 export function builtinSlices(): Slices {
-  return { palettes: builtinPalettes(), typography: builtinTypography(), backgrounds: builtinBackgrounds(), logos: builtinLogos(), menus: builtinMenus(), events: builtinEvents() }
+  // Saved site defaults take the place of the app's own starting sets.
+  const d = structuredClone(SITE_DEFAULTS)
+  return {
+    palettes: d.palettes ?? builtinPalettes(),
+    typography: d.typography ?? builtinTypography(),
+    backgrounds: d.backgrounds ?? builtinBackgrounds(),
+    logos: d.logos ?? builtinLogos(),
+    menus: d.menus ?? builtinMenus(),
+    events: builtinEvents().map((b) => ({ ...b, ...d.calendar })),
+    pages: (d.pages ?? builtinPages()).map(normalizePages),
+  }
 }
 
-const PAGE_IDS: PageId[] = ['brand', 'menu', 'documents', 'players', 'events', 'pairings', 'profile']
+const PAGE_IDS: PageId[] = ['home', 'contact', 'brand', 'menu', 'pages', 'documents', 'players', 'events', 'pairings', 'profile', 'users', 'approvals', 'enquiries']
 
-const SLICES: SliceKey[] = ['palettes', 'typography', 'backgrounds', 'logos', 'menus', 'events']
+const SLICES: SliceKey[] = ['palettes', 'typography', 'backgrounds', 'logos', 'menus', 'events', 'pages']
 
 export function builtinItem<K extends SliceKey>(slice: K, id: string): Slices[K][number] | undefined {
   return (builtinSlices()[slice] as Item[]).find((i) => i.id === id) as Slices[K][number] | undefined
 }
 
-function initialSaved(): SavedState {
-  const b = builtinSlices()
-  const fresh: SavedState = {
-    version: 1,
-    ...b,
-    applied: { palette: 'lime-black', typography: 'typography-1', background: 'bg-dots', logos: 'logo-monogram', menu: 'menu-default', events: 'events-default' },
-  }
+const DEFAULT_APPLIED: Applied = { palette: 'lime-black', typography: 'typography-1', background: 'bg-dots', logos: 'logo-monogram', menu: 'menu-default', events: 'events-default', pages: 'pages-default', ...SITE_DEFAULTS.applied }
+
+function freshSaved(): SavedState {
+  return { version: 1, ...builtinSlices(), applied: DEFAULT_APPLIED }
+}
+
+/** This browser's own saved data (local-only mode, and what Import sends to the server). */
+export function readBrowserData(): SavedState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return fresh
+    if (!raw) return null
     const parsed = JSON.parse(raw) as SavedState
-    if (parsed.version !== 1) return fresh
+    return parsed.version === 1 ? normalize(parsed) : null
+  } catch {
+    return null
+  }
+}
+
+/** The server's state as the app's saved state (built-ins the server doesn't have yet are added). */
+export function fromServer(s: ServerState): SavedState {
+  return normalize({ version: 1, ...s.design, events: [s.book], pages: s.pages ? [s.pages] : [], applied: { ...DEFAULT_APPLIED, ...s.applied, events: s.book.id }, profile: s.profile ?? undefined })
+}
+
+function readCache(): ServerState | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    return raw ? (JSON.parse(raw) as ServerState) : null
+  } catch {
+    return null
+  }
+}
+
+function initialSaved(): SavedState {
+  if (LOCAL_ONLY) return readBrowserData() ?? freshSaved()
+  const cache = readCache()
+  if (cache) return fromServer(cache)
+  // Not the sample events while the server's arrive.
+  const fresh = freshSaved()
+  return { ...fresh, events: fresh.events.map((b) => ({ ...b, events: [] })) }
+}
+
+/** Older saves brought up to date, and built-ins added in later versions of the app. */
+function normalize(parsed: SavedState): SavedState {
+  const b = builtinSlices()
+  const fresh = freshSaved()
+  {
     // The single FIDE rating became Standard / Rapid / Blitz: the old one is the standard rating.
     const splitFide = (x: { fideRating?: string; fideStandard?: string }) => {
       if (x && 'fideRating' in x) {
@@ -59,9 +111,7 @@ function initialSaved(): SavedState {
       const have = new Set((parsed[k] as Item[]).map((i) => i.id))
       for (const item of b[k] as Item[]) if (!have.has(item.id)) (parsed[k] as Item[]).push(item)
     }
-    return { ...fresh, ...parsed, applied: { ...fresh.applied, ...parsed.applied } }
-  } catch {
-    return fresh
+    return { ...fresh, ...parsed, pages: parsed.pages.map(normalizePages), applied: { ...fresh.applied, ...parsed.applied } }
   }
 }
 
@@ -82,18 +132,18 @@ interface UiState {
 
 export type NavTarget = Partial<Pick<UiState, 'page' | 'tab' | 'menuTab' | 'eventId' | 'eventEdit' | 'eventEntries'>>
 /** Why leaving was stopped – decides the prompt and what Apply / Discard do. */
-export type GuardReason = 'menu' | 'events' | 'profile' | 'details' | 'entries'
+export type GuardReason = 'menu' | 'events' | 'pages' | 'profile' | 'details' | 'entries'
 
 export type PreviewMode = 'full' | 'compact' | 'small' | 'hidden'
 
 function initialUi(saved: SavedState): UiState {
   const fresh: UiState = {
-    page: 'brand',
+    page: 'home',
     tab: 'palette',
     menuTab: 'sidebar',
     menuVersion: { topbar: 'light', footer: 'light' },
     selected: {
-      palettes: saved.applied.palette, typography: saved.applied.typography, backgrounds: saved.applied.background, logos: saved.applied.logos, menus: saved.applied.menu, events: saved.applied.events,
+      palettes: saved.applied.palette, typography: saved.applied.typography, backgrounds: saved.applied.background, logos: saved.applied.logos, menus: saved.applied.menu, events: saved.applied.events, pages: saved.applied.pages,
     },
     previewMode: 'compact',
     eventId: null,
@@ -110,16 +160,18 @@ function initialUi(saved: SavedState): UiState {
   } catch {
     /* ignore */
   }
-  if (!PAGE_IDS.includes(ui.page)) ui.page = 'brand'
+  if (!PAGE_IDS.includes(ui.page)) ui.page = 'home'
+  if (!TABS.includes(ui.tab)) ui.tab = 'palette'
   // A preview of an unapplied menu set doesn't survive a reload.
   ui.selected.menus = saved.applied.menu
   const fromHash = parseHash(window.location.hash.slice(1))
-  return fromHash ? { ...ui, ...fromHash } : ui
+  // Opening the site with no page in the address lands on Home.
+  return fromHash ? { ...ui, ...fromHash } : { ...ui, page: 'home', eventId: null, eventEdit: false, eventEntries: false }
 }
 
-const TABS: BrandTab[] = ['palette', 'background', 'logos', 'typography', 'components']
+const TABS: BrandTab[] = ['palette', 'logos', 'typography', 'components']
 const MENU_TABS: MenuTab[] = ['sidebar', 'topbar', 'footer']
-const CONTENT_PAGES: PageId[] = ['documents', 'players', 'events', 'pairings', 'profile']
+const CONTENT_PAGES: PageId[] = ['home', 'contact', 'pages', 'documents', 'players', 'events', 'pairings', 'profile', 'users', 'approvals', 'enquiries']
 
 /** #palette … #components = Brand tabs, #menu/sidebar = Menu tabs, #events = a page. */
 function parseHash(h: string): NavTarget | null {
@@ -137,7 +189,7 @@ export function hashFor(t: { page: PageId; tab: BrandTab; menuTab: MenuTab; even
   return t.page === 'brand' ? t.tab : t.page === 'menu' ? `menu/${t.menuTab}` : t.page
 }
 
-function referencedAssets(s: SavedState): Set<string> {
+export function referencedAssets(s: SavedState): Set<string> {
   const ids = new Set<string>()
   if (s.profile?.photo) ids.add(s.profile.photo.assetId)
   for (const b of s.backgrounds) {
@@ -145,6 +197,7 @@ function referencedAssets(s: SavedState): Set<string> {
     if (b.video.assetId) ids.add(b.video.assetId)
   }
   for (const l of s.logos) for (const slot of Object.values(l.slots)) if (slot?.kind === 'asset') ids.add(slot.assetId)
+  for (const p of s.pages) for (const id of pageAssets(p)) ids.add(id)
   return ids
 }
 
@@ -192,13 +245,56 @@ interface Store {
 
 const Ctx = createContext<Store | null>(null)
 
-const APPLIED_KEY: Record<SliceKey, keyof Applied> = { palettes: 'palette', typography: 'typography', backgrounds: 'background', logos: 'logos', menus: 'menu', events: 'events' }
+/** local = no server (VITE_LOCAL_ONLY); loading / offline = showing the last copy, read-only. */
+export type SessionStatus = 'local' | 'loading' | 'online' | 'offline'
+
+/** What can still be done without the server: looking at pages. */
+const READ_ONLY_GRANTS = /^(page\.(home|contact|events|pairings|players|profile|documents)|events\.viewEntries|profile\.(tournaments|results))$/
+
+export interface Session {
+  status: SessionStatus
+  /** Signed-in user; null = visitor. */
+  user: SessionUser | null
+  grants: Grants
+  readOnly: boolean
+  /** Changes are being sent to the server. */
+  syncing: boolean
+  /** Latest message for a toast (sent for approval, refused…). */
+  notice: { text: string; nonce: number } | null
+  /** No accounts yet: the first sign-up becomes the Admin. */
+  setup: boolean
+  documents: DocItem[]
+  /** Arbiters a TO can assign. */
+  arbiters: { id: number; name: string }[]
+  accountPlayerIds: string[]
+  pendingApprovals: number
+  playersVisible: boolean
+  /** Allowed? Scoped permissions check the event (own / assigned); without one, "for some event". */
+  can: (key: string, event?: CalEvent | null) => boolean
+  /** The change waits for an admin's approval. */
+  needsApproval: (key: string, event?: CalEvent | null) => boolean
+  refresh: () => Promise<void>
+  say: (text: string) => void
+  setDocuments: (docs: DocItem[]) => void
+  login: (login: string, password: string) => Promise<void>
+  logout: () => Promise<void>
+}
+
+const SessionCtx = createContext<Session | null>(null)
+
+export function useSession() {
+  const s = useContext(SessionCtx)
+  if (!s) throw new Error('useSession must be used inside BrandStoreProvider')
+  return s
+}
+
+const APPLIED_KEY: Record<SliceKey, keyof Applied> = { palettes: 'palette', typography: 'typography', backgrounds: 'background', logos: 'logos', menus: 'menu', events: 'events', pages: 'pages' }
 
 export function BrandStoreProvider({ children }: { children: ReactNode }) {
   const [saved, setSaved] = useState<SavedState>(initialSaved)
   const [draft, setDraft] = useState<Slices>(() => {
-    const { palettes, typography, backgrounds, logos, menus, events } = saved
-    return structuredClone({ palettes, typography, backgrounds, logos, menus, events })
+    const { palettes, typography, backgrounds, logos, menus, events, pages } = saved
+    return structuredClone({ palettes, typography, backgrounds, logos, menus, events, pages })
   })
   const [ui, setUiState] = useState<UiState>(() => initialUi(saved))
   const [focus, setFocus] = useState<Focus | null>(null)
@@ -224,15 +320,160 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
   const savedRef = useRef(saved)
   savedRef.current = saved
 
-  useEffect(() => {
-    // The phone preview only reads – the main window owns storage.
-    if (IS_PREVIEW) return
+  // ---------- The server (MySQL via the API) ----------
+
+  const [server, setServer] = useState<ServerState | null>(() => (LOCAL_ONLY ? null : readCache()))
+  const [status, setStatus] = useState<SessionStatus>(LOCAL_ONLY ? 'local' : 'loading')
+  const [notice, setNotice] = useState<Session['notice']>(null)
+  const [syncing, setSyncing] = useState(false)
+  /** What the server has: saved is compared with it, and the differences are sent. */
+  const snap = useRef<SavedState | null>(null)
+  const busy = useRef(false)
+  const serverRef = useRef(server)
+  serverRef.current = server
+  const statusRef = useRef(status)
+  statusRef.current = status
+  const say = useCallback((text: string) => setNotice((n) => ({ text, nonce: (n?.nonce ?? 0) + 1 })), [])
+
+  /** Takes the server's state: saved and the snapshot become it; drafts with unsaved edits are kept. */
+  const adopt = useCallback((s: ServerState) => {
+    const next = fromServer(s)
+    snap.current = next
+    setServer(s)
+    setSaved(next)
+    // Read now: the updater below runs after savedRef has moved on to `next`.
+    const before = savedRef.current
+    setDraft((d) => {
+      const out = { ...d }
+      for (const k of SLICES) {
+        const wasDirty = JSON.stringify(d[k]) !== JSON.stringify(before[k])
+        if (k === 'events') out.events = next.events.map((b) => ({ ...b, view: wasDirty ? d.events.find((x) => x.id === b.id)?.view ?? b.view : b.view }))
+        else if (!wasDirty) (out as Record<SliceKey, unknown>)[k] = structuredClone(next[k])
+      }
+      return out
+    })
+    savedRef.current = next
+  }, [])
+
+  const refresh = useCallback(async () => {
+    if (LOCAL_ONLY) return
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
-    } catch {
-      // Storage full or blocked – keep working in memory.
+      const s = await apiGet<ServerState>('state')
+      adopt(s)
+      setStatus('online')
+    } catch (e) {
+      setStatus('offline')
+      if (e instanceof ApiError && e.status >= 500) say(e.message)
     }
-  }, [saved])
+  }, [adopt, say])
+
+  useEffect(() => {
+    // The phone preview only reads – it reloads when the main window's copy changes.
+    if (LOCAL_ONLY || IS_PREVIEW) {
+      if (IS_PREVIEW && !LOCAL_ONLY) setStatus(serverRef.current ? 'online' : 'offline')
+      return
+    }
+    refresh()
+    // Offline: try again every 30 s and when the browser is back online.
+    const back = () => statusRef.current === 'offline' && refresh()
+    const t = window.setInterval(back, 30000)
+    window.addEventListener('online', back)
+    return () => {
+      clearInterval(t)
+      window.removeEventListener('online', back)
+    }
+  }, [refresh])
+
+  /** Sends saved changes one by one until the server has them all. */
+  const flush = useCallback(async () => {
+    if (busy.current || statusRef.current !== 'online' || !snap.current) return
+    busy.current = true
+    setSyncing(true)
+    try {
+      for (;;) {
+        const s = serverRef.current
+        const op = nextOp(savedRef.current, snap.current!, { playersVisible: !!s?.playersVisible, signedIn: !!s?.user })
+        if (!op) break
+        try {
+          const r = await runOp(op)
+          snap.current = r.snap(snap.current!)
+          if (r.saved) {
+            const next = r.saved(savedRef.current)
+            if (next !== savedRef.current) {
+              savedRef.current = next
+              setSaved(next)
+              setDraft((d) => ({ ...d, events: next.events.map((b) => ({ ...b, view: d.events.find((x) => x.id === b.id)?.view ?? b.view })) }))
+            }
+          }
+          if (r.notice) say(r.notice)
+        } catch (e) {
+          // Refused (no permission, someone else's change, signed out…): show why and take the server's copy.
+          say(e instanceof Error ? e.message : 'Could not save to the server')
+          if (e instanceof ApiError) await refresh()
+          else setStatus('offline')
+          break
+        }
+      }
+    } finally {
+      busy.current = false
+      setSyncing(false)
+    }
+  }, [refresh, say])
+
+  useEffect(() => {
+    if (IS_PREVIEW) return
+    if (LOCAL_ONLY) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
+      } catch {
+        // Storage full or blocked – keep working in memory.
+      }
+      return
+    }
+    if (status === 'online') flush()
+    // Keep a copy for start-up and offline viewing (and the phone preview).
+    const s = serverRef.current
+    if (s)
+      try {
+        const { palettes, typography, backgrounds, logos, menus } = saved
+        const cache: ServerState = { ...s, design: { palettes, typography, backgrounds, logos, menus }, applied: saved.applied, book: saved.events[0], pages: saved.pages[0], profile: saved.profile ?? null }
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
+      } catch {
+        // Storage full or blocked.
+      }
+  }, [saved, status, flush])
+
+  const session = useMemo<Session>(() => {
+    const local = status === 'local'
+    const user: SessionUser | null = local ? { id: 0, username: 'local', email: saved.profile?.email ?? '', role: 'admin', name: 'This browser', playerId: null } : server?.user ?? null
+    // Offline / still loading: look, don't touch.
+    const readOnly = status === 'offline' || status === 'loading'
+    const base = local ? ALL_GRANTS : server?.grants ?? {}
+    const grants: Grants = readOnly ? Object.fromEntries(Object.entries(base).filter(([k]) => READ_ONLY_GRANTS.test(k))) : base
+    const who = { id: user?.id ?? null, grants }
+    return {
+      status, user, grants, readOnly, syncing, notice,
+      setup: !local && !!server?.setup,
+      documents: server?.documents ?? [],
+      arbiters: server?.arbiters ?? [],
+      accountPlayerIds: server?.accountPlayerIds ?? [],
+      pendingApprovals: server?.pendingApprovals ?? 0,
+      playersVisible: local || !!server?.playersVisible,
+      can: (key, e) => allows(who, key, e) !== false,
+      needsApproval: (key, e) => (allows(who, key, e) || { approval: false }).approval,
+      refresh,
+      say,
+      setDocuments: (documents) => setServer((s) => s && { ...s, documents }),
+      async login(login, password) {
+        await apiPost('login', { login, password })
+        await refresh()
+      },
+      async logout() {
+        await apiPost('logout').catch(() => {})
+        await refresh()
+      },
+    }
+  }, [status, server, saved.profile?.email, syncing, notice, refresh, say])
 
   const hash = hashFor(ui)
   useEffect(() => {
@@ -270,8 +511,8 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
   }, [dirty])
 
   const menuPending = dirty.menus || ui.selected.menus !== saved.applied.menu
-  const pendingRef = useRef({ menu: menuPending, events: dirty.events })
-  pendingRef.current = { menu: menuPending, events: dirty.events }
+  const pendingRef = useRef({ menu: menuPending, events: dirty.events, pages: dirty.pages })
+  pendingRef.current = { menu: menuPending, events: dirty.events, pages: dirty.pages }
 
   const go = useCallback((t: NavTarget) => {
     const u0 = uiRef.current
@@ -308,9 +549,11 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
               ? 'menu'
               : from === 'events' && pendingRef.current.events
                 ? 'events'
-                : from === 'profile' && profileDirty.current
-                  ? 'profile'
-                  : null
+                : from === 'pages' && pendingRef.current.pages
+                  ? 'pages'
+                  : from === 'profile' && profileDirty.current
+                    ? 'profile'
+                    : null
       if (reason) {
         setNavPrompt({ ...t, reason })
         history.replaceState(null, '', `#${hashFor(u)}`)
@@ -412,9 +655,9 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
         profileDirty.current = false
         return go(to)
       }
-      if (reason === 'events') {
-        if (choice === 'apply') save('events')
-        else discard('events')
+      if (reason === 'events' || reason === 'pages') {
+        if (choice === 'apply') save(reason)
+        else discard(reason)
         return go(to)
       }
       const id = uiRef.current.selected.menus
@@ -431,7 +674,11 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
   const saveProfile = useCallback((p: Profile) => setSaved((s) => ({ ...s, profile: structuredClone(p) })), [])
 
   const value: Store = { saved, draft, ui, focus, dirty, menuPending, navPrompt, navigate, resolveNav, saveProfile, setProfileDirty, setDetailsDirty, setEntriesGuard, setTab, select, setUi, focusOn, update, updateNow, addItem, removeItem, save, discard, apply }
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+  return (
+    <Ctx.Provider value={value}>
+      <SessionCtx.Provider value={session}>{children}</SessionCtx.Provider>
+    </Ctx.Provider>
+  )
 }
 
 export function useBrand() {
@@ -457,4 +704,4 @@ export function useApplied<K extends SliceKey>(slice: K): Slices[K][number] {
   return (list.find((i) => i.id === saved.applied[APPLIED_KEY[slice]]) ?? list[0]) as Slices[K][number]
 }
 
-export const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+export { uid } from '../lib/uid'

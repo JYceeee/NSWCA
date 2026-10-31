@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ColumnMove, useColumnOrder } from '../components/ColumnOrder'
 import { Modal, useDialogs } from '../components/Dialogs'
+import { PageHead } from '../site/PageHead'
 import { Icon } from '../components/Icon'
 import { dateRangeLabel } from '../data/events'
 import { detailsOf } from '../data/eventDetails'
@@ -35,17 +35,6 @@ export function usePlayers() {
 const enteredIn = (book: EventBook, id: string) =>
   book.events.flatMap((e) => (e.entries ?? []).filter((x) => x.playerId === id).map((x) => ({ event: e, entry: x })))
 
-type ColKey = 'lastName' | 'firstName' | 'dob' | 'gender' | 'fideId' | 'acfId' | 'status'
-const COLS: { key: ColKey; label: string }[] = [
-  { key: 'lastName', label: 'Last name' },
-  { key: 'firstName', label: 'First name' },
-  { key: 'dob', label: 'DOB' },
-  { key: 'gender', label: 'Gender' },
-  { key: 'fideId', label: 'FIDE ID' },
-  { key: 'acfId', label: 'ACF ID' },
-  { key: 'status', label: 'Status' },
-]
-
 const locked = (e: CalEvent) => (e.pairings ?? []).length > 0
 
 /** Admin › All players: every player's details in one place. */
@@ -58,7 +47,6 @@ export function AllPlayersPage() {
   const [query, setQuery] = useState('')
   const [dialog, setDialog] = useState<{ kind: 'view' | 'edit'; player: Player } | { kind: 'new' } | null>(null)
   const rows = searchPlayers(players, query)
-  const { order, move } = useColumnOrder('all-players-columns', COLS.map((c) => c.key))
   /** Ticked rows (player ids). */
   const [ticked, setTicked] = useState<Set<string>>(new Set())
   useEffect(() => setTicked((t) => new Set([...t].filter((id) => players.some((p) => p.id === id)))), [players])
@@ -128,17 +116,18 @@ export function AllPlayersPage() {
 
   return (
     <div className="brand-page ap-page">
-      <header className="page-head ap-head">
-        <div>
-          <h1>All players</h1>
-          <p>
-            Every player’s details in one place – players entered in tournaments are added automatically. {players.length} player{players.length === 1 ? '' : 's'}.
-          </p>
-        </div>
-        <button className="ui-btn ui-btn--primary" onClick={() => setDialog({ kind: 'new' })}>
-          <Icon name="plus" size={15} /> New player
-        </button>
-      </header>
+      <PageHead
+        page="players"
+        title="All players"
+        className="ap-head"
+        actions={
+          <button className="ui-btn ui-btn--primary" onClick={() => setDialog({ kind: 'new' })}>
+            <Icon name="plus" size={15} /> New player
+          </button>
+        }
+      >
+        Every player’s details in one place – players entered in tournaments are added automatically. {players.length} player{players.length === 1 ? '' : 's'}.
+      </PageHead>
 
       <div className="ae-toolbar">
         <div className="cal-search ap-search">
@@ -184,20 +173,11 @@ export function AllPlayersPage() {
                   }
                 />
               </th>
-              {order.map((key, i) => {
-                const { label } = COLS.find((c) => c.key === key)!
-                return (
-                  <th key={key}>
-                    <span className="col-head">
-                      <span className="ae-sort">{label}</span>
-                      <ColumnMove label={label} first={i === 0} last={i === order.length - 1} onMove={(by) => move(key, by)} />
-                    </span>
-                  </th>
-                )
-              })}
-              <th>
-                <span className="ae-sort">Action</span>
-              </th>
+              {['Last name', 'First name', 'DOB', 'Gender', 'FIDE ID', 'ACF ID', 'Status', 'Action'].map((h) => (
+                <th key={h}>
+                  <span className="ae-sort">{h}</span>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -206,17 +186,15 @@ export function AllPlayersPage() {
                 <td className="ae-tick">
                   <input type="checkbox" aria-label={`Tick ${fullName(p)}`} checked={ticked.has(p.id)} onChange={() => toggle(p.id)} />
                 </td>
-                {order.map((k) =>
-                  k === 'status' ? (
-                    <td key={k}>
-                      <span className={`ae-source ap-status--${statusOf(p)}`}>{STATUS_LABEL[statusOf(p)]}</span>
-                    </td>
-                  ) : (
-                    <td key={k} className={k === 'lastName' ? 'ap-last' : undefined}>
-                      {(k === 'dob' ? dmy(p.dob) : p[k]) || <span className="muted">—</span>}
-                    </td>
-                  ),
-                )}
+                <td className="ap-last">{p.lastName}</td>
+                <td>{p.firstName || <span className="muted">—</span>}</td>
+                <td>{dmy(p.dob) || <span className="muted">—</span>}</td>
+                <td>{p.gender || <span className="muted">—</span>}</td>
+                <td>{p.fideId || <span className="muted">—</span>}</td>
+                <td>{p.acfId || <span className="muted">—</span>}</td>
+                <td>
+                  <span className={`ae-source ap-status--${statusOf(p)}`}>{STATUS_LABEL[statusOf(p)]}</span>
+                </td>
                 <td className="ap-actions">
                   <button className="ui-btn ui-btn--small" onClick={() => setDialog({ kind: 'view', player: p })}>
                     View

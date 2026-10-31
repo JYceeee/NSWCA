@@ -8,7 +8,7 @@ import type { CalEvent, EventBook } from '../types'
 import { addWarnings, applyImport, checkRows, downloadTemplate, exportEvents, readFile, type ImportRow } from './spreadsheet'
 
 /** Secondary "Import / Export" button with its menu. */
-export function ImportExportMenu({ onImport, onExport }: { onImport: () => void; onExport: () => void }) {
+export function ImportExportMenu({ onImport, onExport }: { onImport?: () => void; onExport?: () => void }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { toast } = useDialogs()
@@ -34,12 +34,16 @@ export function ImportExportMenu({ onImport, onExport }: { onImport: () => void;
       </button>
       {open && (
         <div className="view-menu-list" role="menu">
-          <button role="menuitem" className="view-menu-item" onClick={pick(onImport)}>
-            <Icon name="upload" size={15} /> Import events
-          </button>
-          <button role="menuitem" className="view-menu-item" onClick={pick(onExport)}>
-            <Icon name="download" size={15} /> Export events
-          </button>
+          {onImport && (
+            <button role="menuitem" className="view-menu-item" onClick={pick(onImport)}>
+              <Icon name="upload" size={15} /> Import events
+            </button>
+          )}
+          {onExport && (
+            <button role="menuitem" className="view-menu-item" onClick={pick(onExport)}>
+              <Icon name="download" size={15} /> Export events
+            </button>
+          )}
           <button role="menuitem" className="view-menu-item" onClick={pick(() => downloadTemplate().catch(() => toast('Could not create the template')))}>
             <Icon name="grid" size={15} /> Download template
           </button>

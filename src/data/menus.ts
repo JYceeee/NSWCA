@@ -18,9 +18,11 @@ export interface NavItem {
 }
 
 export const NAV: NavItem[] = [
+  { id: 'home', label: 'Home', icon: 'grid', page: 'home' },
   { id: 'events', label: 'Upcoming events', icon: 'calendar', page: 'events' },
   { id: 'pairings', label: 'Pairings', icon: 'swap', page: 'pairings' },
   { id: 'players', label: 'All players', icon: 'users', page: 'players' },
+  { id: 'contact', label: 'Contact Us', icon: 'mail', page: 'contact' },
   { id: 'profile', label: 'Profile', icon: 'user', page: 'profile' },
   {
     id: 'admin',
@@ -29,7 +31,11 @@ export const NAV: NavItem[] = [
     children: [
       { id: 'brand', label: 'Brand' },
       { id: 'menu', label: 'Menu' },
+      { id: 'pages', label: 'Page Config' },
       { id: 'documents', label: 'Document' },
+      { id: 'users', label: 'User management' },
+      { id: 'approvals', label: 'Review and approval' },
+      { id: 'enquiries', label: 'Enquiries' },
     ],
   },
 ]
@@ -163,6 +169,7 @@ export const LAYOUT_DEFS: Record<LookKind, LayoutDef[]> = {
   topbar: [
     { key: 'height', label: 'Bar height', desc: 'Height of the top bar', def: 60, min: 40, max: 120 },
     { key: 'padX', label: 'Side padding', desc: 'Space at the left and right ends', def: 24, min: 0, max: 80 },
+    { key: 'blur', label: 'Reversed blur', desc: 'How much the page blurs behind the bar on dark sections', def: 12, min: 0, max: 40 },
   ],
   footer: [
     { key: 'padY', label: 'Top / bottom padding', desc: 'Space above and below the grid', def: 40, min: 0, max: 120 },

@@ -6,6 +6,7 @@ import { isActive, NAV, type NavItem } from '../data/menus'
 import { mv } from '../lib/menuTheme'
 import { ty } from '../lib/theme'
 import { hashFor, useApplied, useBrand } from '../store/BrandStore'
+import { useVisibleNav } from './useNav'
 import type { MenuSet, PageId } from '../types'
 
 const P = 'mn-sb'
@@ -21,6 +22,7 @@ const CLOSE_DELAY = 160
 export function AppSidebar({ menu, mobile, showHead, onPreview }: { menu: MenuSet; mobile: boolean; showHead: boolean; onPreview?: () => void }) {
   const { ui, navigate } = useBrand()
   const logos = useApplied('logos')
+  const nav = useVisibleNav()
   const { subOpen } = menu.sidebar
   const mode = mobile ? 'fixed' : menu.sidebar.mode
   const [expanded, setExpanded] = useState(false)
@@ -112,7 +114,7 @@ export function AppSidebar({ menu, mobile, showHead, onPreview }: { menu: MenuSe
           </div>
         )}
         <nav className="app-menu" style={{ gap: mv(P, 'parent-gap') }}>
-          {NAV.map((item) => {
+          {nav.map((item) => {
             const active = isActive(item, ui.page)
             const showWindow = !mobile && open === item.id
             return (

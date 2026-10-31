@@ -50,7 +50,12 @@ export function FooterGridEditor({ footer, onChange }: { footer: Footer; onChang
     if (n > cols.length) setCols([...cols, ...Array.from({ length: n - cols.length }, () => ({ id: uid('col'), cells: [empty(), empty(), empty()] }))])
     else setCols(cols.slice(0, n))
   }
-  const setRowCount = (ci: number, n: number) => {
+  const moveCol = (ci: number, by: -1 | 1) => {
+    const next = [...cols]
+    ;[next[ci], next[ci + by]] = [next[ci + by], next[ci]]
+    setCols(next)
+  }
+  const setRowCount =(ci: number, n: number) => {
     if (n < 1 || n > MAX_ROWS) return
     editCells((next) => {
       const cells = next[ci].cells
@@ -98,7 +103,10 @@ export function FooterGridEditor({ footer, onChange }: { footer: Footer; onChang
           {cols.map((col, ci) => (
             <div key={col.id} className="fg-col">
               <div className="fg-col-head">
-                <strong>Column {ci + 1}</strong>
+                <span className="col-head">
+                  <strong>Column {ci + 1}</strong>
+                  <ColumnMove label={`column ${ci + 1}`} first={ci === 0} last={ci === cols.length - 1} onMove={(by) => moveCol(ci, by)} />
+                </span>
                 <Stepper label="Rows" value={col.cells.length} min={1} max={MAX_ROWS} onChange={(n) => setRowCount(ci, n)} small />
                 {cols.length > 1 && (
                   <button className="icon-btn icon-btn--danger" title="Remove column" onClick={() => setCols(cols.filter((c) => c.id !== col.id))}>
@@ -161,6 +169,20 @@ function Stepper({ label, value, min, max, onChange, small }: { label: string; v
       <strong>{value}</strong>
       <button className="icon-btn" disabled={value >= max} onClick={() => onChange(value + 1)} aria-label={`More ${label.toLowerCase()}`}>
         <Icon name="plus" size={14} />
+      </button>
+    </span>
+  )
+}
+
+/** ‹ › after a column name: moves the column one place left or right. */
+function ColumnMove({ label, first, last, onMove }: { label: string; first: boolean; last: boolean; onMove: (by: -1 | 1) => void }) {
+  return (
+    <span className="col-move">
+      <button type="button" disabled={first} aria-label={`Move ${label} left`} title="Move left" onClick={() => onMove(-1)}>
+        <Icon name="chevronLeft" size={12} />
+      </button>
+      <button type="button" disabled={last} aria-label={`Move ${label} right`} title="Move right" onClick={() => onMove(1)}>
+        <Icon name="chevron" size={12} />
       </button>
     </span>
   )

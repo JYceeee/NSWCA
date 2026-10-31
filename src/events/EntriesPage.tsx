@@ -1,6 +1,5 @@
 import { format } from 'date-fns'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ColumnMove, useColumnOrder } from '../components/ColumnOrder'
+import { useEffect, useMemo, useState } from 'react'
 import { useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
 import { detailsOf } from '../data/eventDetails'
@@ -59,7 +58,6 @@ export function EntriesPage({ id }: { id: string }) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'name', dir: 1 })
-  const { order, move } = useColumnOrder('entries-columns', COLS.map((c) => c.key))
   const [dialog, setDialog] = useState<'add' | 'import' | null>(null)
   /** Ticked rows (entry ids). */
   const [ticked, setTicked] = useState<Set<string>>(new Set())
@@ -268,20 +266,14 @@ export function EntriesPage({ id }: { id: string }) {
                   }
                 />
               </th>
-              {order.map((key, i) => {
-                const c = COLS.find((x) => x.key === key)!
-                return (
-                  <th key={key} aria-sort={sort.key === key ? (sort.dir === 1 ? 'ascending' : 'descending') : undefined}>
-                    <span className="col-head">
-                      <button className="ae-sort" onClick={() => setSort((s) => ({ key, dir: s.key === key ? ((-s.dir) as 1 | -1) : 1 }))}>
-                        {c.label}
-                        {sort.key === key && <Icon name={sort.dir === 1 ? 'chevronDown' : 'chevron'} size={12} />}
-                      </button>
-                      <ColumnMove label={c.label} first={i === 0} last={i === order.length - 1} onMove={(by) => move(key, by)} />
-                    </span>
-                  </th>
-                )
-              })}
+              {COLS.map((c) => (
+                <th key={c.key} aria-sort={sort.key === c.key ? (sort.dir === 1 ? 'ascending' : 'descending') : undefined}>
+                  <button className="ae-sort" onClick={() => setSort((s) => ({ key: c.key, dir: s.key === c.key ? ((-s.dir) as 1 | -1) : 1 }))}>
+                    {c.label}
+                    {sort.key === c.key && <Icon name={sort.dir === 1 ? 'chevronDown' : 'chevron'} size={12} />}
+                  </button>
+                </th>
+              ))}
               <th aria-label="Remove" />
             </tr>
           </thead>
@@ -305,18 +297,18 @@ export function EntriesPage({ id }: { id: string }) {
                 ) : (
                   (x[k] as string) || <span className="muted">—</span>
                 )
-              const cells: Record<SortKey, ReactNode> = {
-                name: (
-                  <td key="name" className="ae-name">
+              const isChanged = JSON.stringify(x) !== JSON.stringify(byId.get(x.id))
+              return (
+                <tr key={x.id} className={[errors[x.id] && 'ae-row--error', isChanged && 'ae-row--changed', ticked.has(x.id) && 'ae-row--ticked'].filter(Boolean).join(' ')}>
+                  <td className="ae-tick">
+                    <input type="checkbox" aria-label={`Tick ${x.name}`} checked={ticked.has(x.id)} onChange={() => toggle(x.id)} />
+                  </td>
+                  <td className="ae-name">
                     {text('name', '190px')}
                     {errors[x.id] && <div className="ds-field-error">{errors[x.id]}</div>}
                   </td>
-                ),
-                fed: (
-                  <td key="fed">{text('fed', '56px')}</td>
-                ),
-                dob: (
-                  <td key="dob">
+                  <td>{text('fed', '56px')}</td>
+                  <td>
                     {editable ? (
                       <input className="ae-input" type="date" value={x.dob ?? ''} aria-label="DOB" onChange={(e) => patch(x.id, { dob: e.target.value })} />
                     ) : x.dob ? (
@@ -325,36 +317,16 @@ export function EntriesPage({ id }: { id: string }) {
                       <span className="muted">—</span>
                     )}
                   </td>
-                ),
-                gender: (
-                  <td key="gender">{pick('gender', ['M', 'F'])}</td>
-                ),
-                title: (
-                  <td key="title">{pick('title', TITLES.slice(0, 8))}</td>
-                ),
-                fideId: (
-                  <td key="fideId">{text('fideId', '96px')}</td>
-                ),
-                kFide: (
-                  <td key="kFide">{pick('kFide', ['10', '20', '40'])}</td>
-                ),
-                fideStandard: (
-                  <td key="fideStandard">{text('fideStandard', '64px')}</td>
-                ),
-                fideRapid: (
-                  <td key="fideRapid">{text('fideRapid', '64px')}</td>
-                ),
-                fideBlitz: (
-                  <td key="fideBlitz">{text('fideBlitz', '64px')}</td>
-                ),
-                acfId: (
-                  <td key="acfId">{text('acfId', '90px')}</td>
-                ),
-                acfRating: (
-                  <td key="acfRating">{text('acfRating', '64px')}</td>
-                ),
-                division: (
-                  <td key="division">
+                  <td>{pick('gender', ['M', 'F'])}</td>
+                  <td>{pick('title', TITLES.slice(0, 8))}</td>
+                  <td>{text('fideId', '96px')}</td>
+                  <td>{pick('kFide', ['10', '20', '40'])}</td>
+                  <td>{text('fideStandard', '64px')}</td>
+                  <td>{text('fideRapid', '64px')}</td>
+                  <td>{text('fideBlitz', '64px')}</td>
+                  <td>{text('acfId', '90px')}</td>
+                  <td>{text('acfRating', '64px')}</td>
+                  <td>
                     {divisions.length ? (
                       locked ? (
                         divisionName(x.division) || <span className="muted">—</span>
@@ -372,32 +344,17 @@ export function EntriesPage({ id }: { id: string }) {
                       <span className="muted">—</span>
                     )}
                   </td>
-                ),
-                email: (
-                  <td key="email" className="ae-email">
+                  <td className="ae-email">
                     {editable ? (
                       <input className="ae-input" style={{ width: '190px' }} type="email" value={x.email} aria-label="email" onChange={(e) => patch(x.id, { email: e.target.value })} />
                     ) : (
                       x.email || <span className="muted">—</span>
                     )}
                   </td>
-                ),
-                at: (
-                  <td key="at" className="ae-at">{format(new Date(x.at), 'd MMM yyyy, h:mm a')}</td>
-                ),
-                source: (
-                  <td key="source">
+                  <td className="ae-at">{format(new Date(x.at), 'd MMM yyyy, h:mm a')}</td>
+                  <td>
                     <span className={`ae-source ae-source--${sourceOf(x)}`}>{SOURCE_LABEL[sourceOf(x)]}</span>
                   </td>
-                ),
-              }
-              const isChanged = JSON.stringify(x) !== JSON.stringify(byId.get(x.id))
-              return (
-                <tr key={x.id} className={[errors[x.id] && 'ae-row--error', isChanged && 'ae-row--changed', ticked.has(x.id) && 'ae-row--ticked'].filter(Boolean).join(' ')}>
-                  <td className="ae-tick">
-                    <input type="checkbox" aria-label={`Tick ${x.name}`} checked={ticked.has(x.id)} onChange={() => toggle(x.id)} />
-                  </td>
-                  {order.map((k) => cells[k])}
                   <td>
                     <button className="icon-btn icon-btn--danger" disabled={locked} title={locked ? 'Pairings released – entries are locked' : 'Remove player'} onClick={() => remove(x)}>
                       <Icon name="trash" size={15} />

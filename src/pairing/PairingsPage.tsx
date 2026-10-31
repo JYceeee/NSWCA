@@ -7,6 +7,7 @@ import { dateRangeLabel, fmtDate } from '../data/events'
 import { isFinished } from '../events/pairings'
 import { PairingTable } from '../events/PairingsSection'
 import { useEventBook } from '../events/useEventBook'
+import { PageHead } from '../site/PageHead'
 import { uid } from '../store/BrandStore'
 import type { CalEvent, PairingBoard, PairingRound } from '../types'
 import {
@@ -41,10 +42,9 @@ export function PairingsPage() {
 
   return (
     <div className="brand-page pg-page">
-      <header className="page-head">
-        <h1>Pairings</h1>
-        <p>Byes, pairing rounds with Gacrux (FIDE Dutch system) and entering results.</p>
-      </header>
+      <PageHead page="pairings" title="Pairings">
+        Byes, pairing rounds with Gacrux (FIDE Dutch system) and entering results.
+      </PageHead>
       <div className="brand-tabs pg-tabs" role="tablist">
         {TABS.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} className="brand-tab" onClick={() => setTab(t.id)}>

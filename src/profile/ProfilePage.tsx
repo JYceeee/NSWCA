@@ -7,12 +7,13 @@ import { Popover } from '../components/Popover'
 import { AU_STATES, COUNTRIES, countryName, dialCode, FEDERATIONS } from '../data/countries'
 import { fmtDate, toDate } from '../data/events'
 import { deleteAsset, putAsset } from '../lib/db'
-import { uid, useBrand } from '../store/BrandStore'
+import { uid, useBrand, useSession } from '../store/BrandStore'
 import type { Profile } from '../types'
 import { fedCode } from '../pairing/engine'
 import { TITLES } from '../events/pairings'
 import { Combobox } from './Combobox'
 import { MyResults, MyTournaments } from './ProfileTabs'
+import { PageHead } from '../site/PageHead'
 
 type ProfileTab = 'info' | 'tournaments' | 'results'
 const PROFILE_TABS: { id: ProfileTab; label: string; icon: string }[] = [
@@ -30,7 +31,7 @@ export const emptyProfile = (): Profile => ({
   street: '', apartment: '', suburb: '', state: '', postcode: '', country: 'AU', dob: '', sex: '', citizenship: '', occupation: '', clubs: '', fideId: '', acfId: '', fideStandard: '', fideRapid: '', fideBlitz: '', acfRating: '', federation: '', kFide: '', title: '', joinDate: '', renewDate: '',
 })
 
-type Key = Exclude<keyof Profile, 'photo' | 'membershipHistory'>
+type Key = Exclude<keyof Profile, 'photo' | 'membershipHistory' | 'completed'>
 type Errors = Partial<Record<Key, string>>
 
 const REQUIRED: Key[] = ['firstName', 'lastName', 'email', 'phone', 'street', 'suburb', 'state', 'postcode', 'country', 'dob', 'sex']
@@ -106,8 +107,50 @@ const phoneText = (p: Profile) => (p.phone.trim() ? `${p.phoneCountry} +${dialCo
 
 export function ProfilePage() {
   const { saved, saveProfile, setProfileDirty } = useBrand()
+  const { can, user } = useSession()
+  const fields = saved.pages[0].profileFields
+  // After the first full save, what Page Config switched off is view-only (Admin and user managers can always edit).
+  const lockOn = saved.profile?.completed && !can('users.edit') && user?.role !== 'admin'
+  const locked = new Set(lockOn ? Object.keys(fields).filter((k) => fields[k] === false) : [])
+  return (
+    <div className="brand-page profile-page">
+      <PageHead page="profile" title="Profile">
+        Your personal details, tournaments and results.
+      </PageHead>
+      <ProfileScreen
+        value={saved.profile}
+        fallbackEmail={user?.email}
+        onSave={saveProfile}
+        setDirty={setProfileDirty}
+        canEdit={can('profile.edit')}
+        canJoin={can('profile.joinRenew')}
+        canEditDates={user?.role === 'admin'}
+        locked={locked}
+        tabs={PROFILE_TABS.filter((t) => t.id === 'info' || can(t.id === 'tournaments' ? 'profile.tournaments' : 'profile.results'))}
+      />
+    </div>
+  )
+}
+
+/** A profile's view / edit screen: your own (Profile page) or a user's (User management). */
+export function ProfileScreen({
+  value, fallbackEmail, onSave: saveProfile, setDirty: setProfileDirty, canEdit, canJoin, canEditDates, locked, tabs,
+}: {
+  value: Profile | undefined | null
+  /** Used when the profile has no email yet (the account's). */
+  fallbackEmail?: string
+  onSave: (p: Profile) => void
+  setDirty: (dirty: boolean) => void
+  canEdit: boolean
+  canJoin: boolean
+  /** Join date and last renew date can be typed in (Admin only). */
+  canEditDates: boolean
+  /** Fields shown view-only in the editor. */
+  locked?: Set<string>
+  tabs: typeof PROFILE_TABS
+}) {
   const { confirm, toast } = useDialogs()
-  const profile = useMemo(() => ({ ...emptyProfile(), ...saved.profile }), [saved.profile])
+  const profile = useMemo(() => ({ ...emptyProfile(), email: fallbackEmail ?? '', ...value }), [value, fallbackEmail])
   const [draft, setDraft] = useState<Profile | null>(null)
   const [tab, setTab] = useState<ProfileTab>('info')
   const [errors, setErrors] = useState<Errors>({})
@@ -151,6 +194,8 @@ export function ProfilePage() {
     const trimmed = Object.fromEntries(Object.entries(draft).map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v])) as unknown as Profile
     trimmed.federation = (trimmed.federation ?? '').toUpperCase()
     const e = validate(trimmed)
+    // A view-only field can't be fixed here, so it can't hold up the save.
+    for (const k of readOnly) delete e[k as Key]
     setErrors(e)
     if (Object.keys(e).length) {
       setTimeout(() => {
@@ -171,6 +216,8 @@ export function ProfilePage() {
     toast('Profile saved')
   }
 
+  const readOnly = new Set([...(locked ?? []), ...(canEditDates ? [] : ['joinDate', 'renewDate'])])
+
   const joinRenew = async () => {
     const next = joinOrRenew(profile)
     const joining = !profile.joinDate
@@ -189,23 +236,19 @@ export function ProfilePage() {
     if (f.size > MAX_PHOTO) return toast('That image is over 5 MB')
     const id = uid('asset')
     try {
-      await putAsset({ id, name: f.name, type: f.type, blob: f })
-    } catch {
-      return toast('Could not store the image in this browser')
+      await putAsset({ id, name: f.name, type: f.type, blob: f }, 'photo')
+    } catch (e) {
+      return toast(e instanceof Error ? e.message : 'Could not upload the image')
     }
     uploads.current.push(id)
     setDraft((d) => d && { ...d, photo: { assetId: id, mime: f.type } })
   }
 
   return (
-    <div className="brand-page profile-page">
-      <header className="page-head">
-        <h1>Profile</h1>
-        <p>Your personal details, tournaments and results. Saved in this browser.</p>
-      </header>
-      {!draft && (
+    <>
+      {!draft && tabs.length > 1 && (
         <div className="brand-tabs pf-tabs" role="tablist">
-          {PROFILE_TABS.map((t) => (
+          {tabs.map((t) => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} className="brand-tab" onClick={() => setTab(t.id)}>
               <Icon name={t.icon} size={16} /> {t.label}
             </button>
@@ -230,14 +273,15 @@ export function ProfilePage() {
             })
           }}
           onPhoto={uploadPhoto}
+          readOnly={readOnly}
           dirty={dirty}
           onCancel={cancel}
           onSave={save}
         />
       ) : (
-        <ViewProfile p={profile} onEdit={startEdit} onJoinRenew={joinRenew} />
+        <ViewProfile p={profile} onEdit={canEdit ? startEdit : undefined} onJoinRenew={canJoin ? joinRenew : undefined} />
       )}
-    </div>
+    </>
   )
 }
 
@@ -254,7 +298,7 @@ function Avatar({ p, size }: { p: Profile; size: number }) {
 
 // ---------- View ----------
 
-function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit: () => void; onJoinRenew: () => void }) {
+function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit?: () => void; onJoinRenew?: () => void }) {
   const name = fullName(p)
   const a = age(p)
   const joined = daysSinceJoining(p)
@@ -272,9 +316,11 @@ function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit: () => voi
             (a != null || joined != null) && <p>{[a != null && `Age ${a}`, joined != null && `${daysText(joined)} since joining`].filter(Boolean).join(' · ')}</p>
           )}
         </div>
-        <button className="ui-btn ui-btn--primary" onClick={onEdit}>
-          <Icon name="edit" size={15} /> Edit Profile
-        </button>
+        {onEdit && (
+          <button className="ui-btn ui-btn--primary" onClick={onEdit}>
+            <Icon name="edit" size={15} /> Edit Profile
+          </button>
+        )}
       </section>
       {/* Left: Personal, My membership, Your chess level. Right: Contact, Address, Other. Phones read row by row. */}
       <div className="pf-cards">
@@ -288,9 +334,11 @@ function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit: () => voi
             title="My membership"
             order={3}
             action={
-              <button className="ui-btn ui-btn--primary ui-btn--small" onClick={onJoinRenew}>
-                Join/Renew
-              </button>
+              onJoinRenew && (
+                <button className="ui-btn ui-btn--primary ui-btn--small" onClick={onJoinRenew}>
+                  Join/Renew
+                </button>
+              )
             }
           >
             <Row label="Join date" value={longDate(p.joinDate)} />
@@ -401,12 +449,13 @@ const fedOptions = FEDERATIONS.map((f) => ({ value: f.code, label: `${f.code} ·
 const dialOptions =COUNTRIES.map((c) => ({ value: c.code, label: `${c.code} +${c.dial} · ${c.name}`, keywords: `+${c.dial}` }))
 
 function EditProfile({
-  p, errors, set, onPhoto, dirty, onCancel, onSave,
+  p, errors, set, onPhoto, readOnly, dirty, onCancel, onSave,
 }: {
   p: Profile
   errors: Errors
   set: (patch: Partial<Profile>) => void
   onPhoto: (f: File) => void
+  readOnly: Set<string>
   dirty: boolean
   onCancel: () => void
   onSave: () => void
@@ -416,17 +465,26 @@ function EditProfile({
   const req = (k: Key) => REQUIRED.includes(k)
 
   /** One label | input row. */
-  const field = (k: Key, label: string, control: ReactNode) => (
-    <div className="pf-edit-row" key={k}>
-      <label className="ds-field-label" htmlFor={`pf-${k}`}>
-        {label} {req(k) && <span className="ds-required">*</span>}
-      </label>
-      <div className="pf-control">
-        {control}
-        {errors[k] && <span className="ds-field-error">{errors[k]}</span>}
+  const field = (k: Key, label: string, control: ReactNode, shown: string = p[k] ?? '') =>
+    readOnly.has(k) ? (
+      <div className="pf-edit-row" key={k}>
+        <span className="ds-field-label">{label}</span>
+        <div className="pf-control pf-readonly">
+          <span>{shown.trim() || '—'}</span>
+          <span className="pf-readonly-tag"><Icon name="info" size={13} /> View only</span>
+        </div>
       </div>
-    </div>
-  )
+    ) : (
+      <div className="pf-edit-row" key={k}>
+        <label className="ds-field-label" htmlFor={`pf-${k}`}>
+          {label} {req(k) && <span className="ds-required">*</span>}
+        </label>
+        <div className="pf-control">
+          {control}
+          {errors[k] && <span className="ds-field-error">{errors[k]}</span>}
+        </div>
+      </div>
+    )
   const input = (k: Key, label: string, placeholder = '', type = 'text') =>
     field(
       k,
@@ -440,6 +498,7 @@ function EditProfile({
         placeholder={placeholder}
         onChange={(e) => set({ [k]: e.target.value })}
       />,
+      type === 'date' ? (p[k] ? longDate(p[k] ?? '') : '') : undefined,
     )
   const select = (k: Key, label: string, options: string[], placeholder: string) =>
     field(
@@ -469,6 +528,12 @@ function EditProfile({
         <h3>Personal</h3>
         <div className="pf-edit-row">
           <span className="ds-field-label">Photo</span>
+          {readOnly.has('photo') ? (
+            <div className="pf-control pf-readonly">
+              <Avatar p={p} size={72} />
+              <span className="pf-readonly-tag"><Icon name="info" size={13} /> View only</span>
+            </div>
+          ) : (
           <div
             className={over ? 'pf-photo pf-photo--over' : 'pf-photo'}
             onDragOver={(e) => (e.preventDefault(), setOver(true))}
@@ -504,6 +569,7 @@ function EditProfile({
               }}
             />
           </div>
+          )}
         </div>
         {select('prefix', 'Prefix', PREFIXES, 'None')}
         {input('firstName', 'First name', 'E.g. John')}
@@ -515,6 +581,7 @@ function EditProfile({
           'citizenship',
           'Citizenship',
           <Combobox ariaLabel="Citizenship" value={p.citizenship} options={countryOptions} onChange={(citizenship) => set({ citizenship })} placeholder="Search countries…" />,
+          p.citizenship ? countryName(p.citizenship) : '',
         )}
       </section>
 
@@ -539,6 +606,7 @@ function EditProfile({
             onChange={(federation) => set({ federation })}
             placeholder="Search federations or codes…"
           />,
+          (p.federation || fedCode(p.citizenship)).toUpperCase(),
         )}
         {select('title', 'Title', TITLES.slice(0, 8), 'None')}
         {input('fideStandard', 'FIDE Standard', 'Optional – leave empty if unrated')}
@@ -575,6 +643,7 @@ function EditProfile({
               onChange={(e) => set({ phone: e.target.value })}
             />
           </div>,
+          phoneText(p),
         )}
       </section>
 
@@ -596,6 +665,7 @@ function EditProfile({
             // A state only carries over when it still fits: Australian states stay with Australia.
             onChange={(country) => set({ country, state: (country === 'AU') === AU_STATES.includes(p.state) ? p.state : '' })}
           />,
+          p.country ? countryName(p.country) : '',
         )}
       </section>
 

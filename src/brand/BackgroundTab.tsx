@@ -109,8 +109,8 @@ export function BackgroundTab() {
     const id = uid('asset')
     try {
       await putAsset({ id, name: file.name, type: file.type, blob: file })
-    } catch {
-      return toast('Could not store the file in this browser')
+    } catch (e) {
+      return toast(e instanceof Error ? e.message : 'Could not upload the file')
     }
     patch((b) => ({ ...b, [kind]: { ...b[kind], assetId: id, fileName: file.name } }))
   }

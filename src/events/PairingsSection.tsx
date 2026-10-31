@@ -10,7 +10,16 @@ import { nameKey } from './results'
  * Pairings (rounds still to finish, with upload) or Results (finished rounds) – the same table, one file per round.
  * A round moves to Results once every game has a result.
  */
-export function PairingsSection({ event, you, setEvent, mode }: { event: CalEvent; you: string; setEvent: (fn: (e: CalEvent) => CalEvent) => void; mode: 'pairings' | 'results' }) {
+export function PairingsSection({
+  event, you, setEvent, mode, canEdit,
+}: {
+  event: CalEvent
+  you: string
+  setEvent: (fn: (e: CalEvent) => CalEvent) => void
+  mode: 'pairings' | 'results'
+  /** Upload and remove rounds (organiser / assigned arbiter). */
+  canEdit: boolean
+}) {
   const results = mode === 'results'
   const { confirm, toast } = useDialogs()
   const input = useRef<HTMLInputElement>(null)
@@ -69,7 +78,7 @@ export function PairingsSection({ event, you, setEvent, mode }: { event: CalEven
     <section id={`ed-${id}`} className="ed-section">
       <div className="ed-section-head">
         <h2>{results ? 'Results' : 'Pairings'}</h2>
-        {!results && (
+        {!results && canEdit && (
         <div className="ed-section-actions">
           <button className="ui-btn ui-btn--small" onClick={() => downloadPairingTemplate().catch(() => toast('Could not create the template'))}>
             <Icon name="download" size={14} /> Download template
@@ -84,7 +93,7 @@ export function PairingsSection({ event, you, setEvent, mode }: { event: CalEven
           )}
         </div>
         )}
-        {results && current && (
+        {results && current && canEdit && (
           <button className="ui-btn ui-btn--small ui-btn--danger" onClick={() => remove(current)}>
             <Icon name="trash" size={14} /> Remove round {current.round}
           </button>

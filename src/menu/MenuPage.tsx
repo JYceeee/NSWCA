@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { ItemHeader, ItemSwitcher, NewItemDialog, SaveBar, SectionTitle } from '../brand/shared'
 import { Icon } from '../components/Icon'
+import { PageHead } from '../site/PageHead'
 import { useBrand, useSelected } from '../store/BrandStore'
 import type { BarVersion, MenuSet, MenuTab, SidebarMode, SubOpen } from '../types'
 import { FooterGridEditor } from './FooterGridEditor'
@@ -24,10 +25,9 @@ export function MenuPage() {
 
   return (
     <div className="brand-page">
-      <header className="page-head">
-        <h1>Menu</h1>
-        <p>Side bar, top bar and footer – how they behave and look. This app’s own menus preview the set you are editing.</p>
-      </header>
+      <PageHead page="menu" title="Menu">
+        Side bar, top bar and footer – how they behave and look. This app’s own menus preview the set you are editing.
+      </PageHead>
       <div className="menu-sticky">
         <div className="brand-tabs" role="tablist">
           {TABS.map((t) => (

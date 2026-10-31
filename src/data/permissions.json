@@ -1,0 +1,92 @@
+{
+  "groups": [
+    "Home",
+    "Contact Us",
+    "Upcoming events",
+    "Tournament entries",
+    "Pairings",
+    "All players",
+    "Profile",
+    "Brand",
+    "Menu",
+    "Page Config",
+    "Enquiries",
+    "Document",
+    "User management",
+    "Review and approval"
+  ],
+  "rows": [
+    { "key": "page.home", "group": "Home", "label": "Open page", "d": [true, true, true, true] },
+    { "key": "page.contact", "group": "Contact Us", "label": "Open page and send the form", "d": [true, true, true, true] },
+
+    { "key": "page.events", "group": "Upcoming events", "label": "Open page", "d": [true, true, true, true] },
+    { "key": "events.viewPending", "group": "Upcoming events", "label": "See events waiting for approval", "scopes": ["all", "own"], "d": [false, false, false, "own"] },
+    { "key": "events.add", "group": "Upcoming events", "label": "Add event", "scopes": ["all", "approval"], "d": [false, false, false, "approval"] },
+    { "key": "events.edit", "group": "Upcoming events", "label": "Edit event and its details", "scopes": ["all", "approval", "own", "own_approval"], "d": [false, false, false, "own_approval"] },
+    { "key": "events.delete", "group": "Upcoming events", "label": "Delete event", "scopes": ["all", "own"], "d": [false, false, false, "own"] },
+    { "key": "events.assignArbiters", "group": "Upcoming events", "label": "Assign arbiters", "scopes": ["all", "own"], "d": [false, false, false, "own"] },
+    { "key": "events.categories", "group": "Upcoming events", "label": "Edit categories", "d": [false, false, false, false] },
+    { "key": "events.import", "group": "Upcoming events", "label": "Import events", "d": [false, false, false, false] },
+    { "key": "events.export", "group": "Upcoming events", "label": "Export events", "d": [false, false, false, true] },
+    { "key": "events.viewSettings", "group": "Upcoming events", "label": "Save calendar view settings", "d": [false, false, false, false] },
+
+    { "key": "events.viewEntries", "group": "Tournament entries", "label": "View entries", "d": [true, true, true, true] },
+    { "key": "events.enter", "group": "Tournament entries", "label": "Enter an event", "d": [false, true, true, true] },
+    { "key": "events.withdraw", "group": "Tournament entries", "label": "Withdraw own entry", "d": [false, true, true, true] },
+    { "key": "events.requestBye", "group": "Tournament entries", "label": "Request a bye", "d": [false, true, true, true] },
+    { "key": "entries.manage", "group": "Tournament entries", "label": "Add, import, edit and remove entries", "scopes": ["all", "own", "assigned"], "d": [false, false, false, "own"] },
+    { "key": "entries.export", "group": "Tournament entries", "label": "Export entries", "scopes": ["all", "own", "assigned"], "d": [false, false, "assigned", "own"] },
+    { "key": "events.uploadPairings", "group": "Tournament entries", "label": "Upload pairing files on the tournament page", "scopes": ["all", "own", "assigned"], "d": [false, false, "assigned", false] },
+
+    { "key": "page.pairings", "group": "Pairings", "label": "Open page", "d": [false, false, true, false] },
+    { "key": "pairings.byes", "group": "Pairings", "label": "Byes tab: set and cancel byes", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
+    { "key": "pairings.generate", "group": "Pairings", "label": "Generate, publish and unpublish rounds", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
+    { "key": "pairings.results", "group": "Pairings", "label": "Results tab: enter results", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
+    { "key": "pairings.trf", "group": "Pairings", "label": "Download TRF file", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
+
+    { "key": "page.players", "group": "All players", "label": "Open page", "d": [false, false, false, true] },
+    { "key": "players.add", "group": "All players", "label": "Add player", "d": [false, false, false, false] },
+    { "key": "players.edit", "group": "All players", "label": "Edit player", "d": [false, false, false, false] },
+    { "key": "players.delete", "group": "All players", "label": "Delete players", "d": [false, false, false, false] },
+
+    { "key": "page.profile", "group": "Profile", "label": "Open page", "d": [false, true, true, true] },
+    { "key": "profile.edit", "group": "Profile", "label": "Edit own profile", "d": [false, true, true, true] },
+    { "key": "profile.joinRenew", "group": "Profile", "label": "Join or renew membership", "d": [false, true, true, true] },
+    { "key": "profile.tournaments", "group": "Profile", "label": "My tournaments tab", "d": [false, true, true, true] },
+    { "key": "profile.results", "group": "Profile", "label": "My results tab", "d": [false, true, true, true] },
+    { "key": "profile.memberDates", "group": "Profile", "label": "Edit join date and last renew date (Admin only)", "adminOnly": true, "d": [false, false, false, false] },
+
+    { "key": "page.brand", "group": "Brand", "label": "Open page", "d": [false, false, false, false] },
+    { "key": "brand.edit", "group": "Brand", "label": "Add, edit, save and delete palettes, typography, backgrounds, logos and components", "d": [false, false, false, false] },
+    { "key": "brand.apply", "group": "Brand", "label": "Apply to site", "d": [false, false, false, false] },
+
+    { "key": "page.menu", "group": "Menu", "label": "Open page", "d": [false, false, false, false] },
+    { "key": "menu.edit", "group": "Menu", "label": "Add, edit, save and delete menu sets", "d": [false, false, false, false] },
+    { "key": "menu.apply", "group": "Menu", "label": "Apply to site", "d": [false, false, false, false] },
+
+    { "key": "page.pages", "group": "Page Config", "label": "Open page", "d": [false, false, false, false] },
+    { "key": "pages.edit", "group": "Page Config", "label": "Edit and save page text, images and settings", "d": [false, false, false, false] },
+
+    { "key": "page.enquiries", "group": "Enquiries", "label": "Open page", "d": [false, false, false, false] },
+    { "key": "enquiries.manage", "group": "Enquiries", "label": "Mark enquiries handled and delete them", "d": [false, false, false, false] },
+
+    { "key": "page.documents", "group": "Document", "label": "Open page", "d": [false, false, true, true] },
+    { "key": "documents.download", "group": "Document", "label": "Download documents and templates", "d": [false, false, true, true] },
+    { "key": "documents.add", "group": "Document", "label": "Add document", "d": [false, false, false, false] },
+    { "key": "documents.delete", "group": "Document", "label": "Delete document", "d": [false, false, false, false] },
+
+    { "key": "page.users", "group": "User management", "label": "Open page", "d": [false, false, false, false] },
+    { "key": "users.create", "group": "User management", "label": "Create Admin, Organiser and Arbiter accounts", "d": [false, false, false, false] },
+    { "key": "users.edit", "group": "User management", "label": "View and edit user details and profiles", "d": [false, false, false, false] },
+    { "key": "users.resetPassword", "group": "User management", "label": "Reset password", "d": [false, false, false, false] },
+    { "key": "users.disable", "group": "User management", "label": "Disable and enable users", "d": [false, false, false, false] },
+    { "key": "users.log", "group": "User management", "label": "View log", "d": [false, false, false, false] },
+    { "key": "users.permissions", "group": "User management", "label": "Roles and permissions tab", "d": [false, false, false, false] },
+    { "key": "users.import", "group": "User management", "label": "Import this browser's data into MySQL", "d": [false, false, false, false] },
+
+    { "key": "page.approvals", "group": "Review and approval", "label": "Open page", "d": [false, false, false, false] },
+    { "key": "approvals.events", "group": "Review and approval", "label": "Approve or reject new events", "d": [false, false, false, false] },
+    { "key": "approvals.changes", "group": "Review and approval", "label": "Approve or reject event changes", "d": [false, false, false, false] },
+    { "key": "approvals.signups", "group": "Review and approval", "label": "Approve or reject member sign-ups", "d": [false, false, false, false] }
+  ]
+}

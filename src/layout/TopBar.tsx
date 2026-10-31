@@ -2,21 +2,25 @@ import { forwardRef, useEffect, useRef, useState, type CSSProperties, type React
 import { LogoImage } from '../brand/LogosTab'
 import { Icon } from '../components/Icon'
 import { logoHeight } from '../data/logos'
-import { isActive, NAV, type NavItem } from '../data/menus'
+import { isActive, type NavItem } from '../data/menus'
 import { lookPrefix, mv } from '../lib/menuTheme'
 import { ty } from '../lib/theme'
 import { hashFor, useApplied, useBrand } from '../store/BrandStore'
+import { useVisibleNav } from './useNav'
 import type { BarVersion, MenuSet, PageId } from '../types'
 
 const CLOSE_DELAY = 160
+/** Percent of the bar's dark colour left when it's see-through. */
+const CLEAR_TINT = 45
 
 /** Full-width bar above the sidebar: logo + parent tabs, sub tabs in a dropdown (hover or click, as the sidebar). */
-export const TopBar = forwardRef<HTMLElement, { menu: MenuSet; version: BarVersion; toggle: ReactNode; onPreview?: () => void }>(function TopBar(
-  { menu, version, toggle, onPreview },
+export const TopBar = forwardRef<HTMLElement, { menu: MenuSet; version: BarVersion; clear?: boolean; toggle: ReactNode; onPreview?: () => void }>(function TopBar(
+  { menu, version, clear, toggle, onPreview },
   ref,
 ) {
   const { ui, navigate } = useBrand()
   const logos = useApplied('logos')
+  const items = useVisibleNav()
   const p = lookPrefix('topbar', version)
   const c = (k: string) => mv(p, `c-${k}`)
   const onHover = menu.sidebar.subOpen === 'hover'
@@ -51,14 +55,22 @@ export const TopBar = forwardRef<HTMLElement, { menu: MenuSet; version: BarVersi
     <header
       ref={ref}
       className="app-topbar"
-      style={{ background: c('bg'), borderBottom: `1px solid ${c('divider')}`, height: mv(p, 'height'), padding: `0 ${mv(p, 'padX')}` }}
+      style={{
+        // Over a dark section: the bar's dark colour, see-through, with the page blurred behind it.
+        background: clear ? `color-mix(in srgb, ${c('bg')} ${CLEAR_TINT}%, transparent)` : c('bg'),
+        backdropFilter: clear ? `blur(${mv(p, 'blur')})` : undefined,
+        WebkitBackdropFilter: clear ? `blur(${mv(p, 'blur')})` : undefined,
+        borderBottom: `1px solid ${clear ? 'transparent' : c('divider')}`,
+        height: mv(p, 'height'),
+        padding: `0 ${mv(p, 'padX')}`,
+      }}
     >
       {toggle}
       <span className="tb-logo">
         <LogoImage set={logos} slot={version === 'dark' ? 'reversed' : 'primary'} height={logoHeight(logos, version === 'dark' ? 'reversed' : 'primary')} />
       </span>
       <nav className="tb-nav" ref={nav} style={{ gap: mv(p, 'tab-gap') }}>
-        {NAV.map((item) => {
+        {items.map((item) => {
           const active = isActive(item, ui.page)
           return (
             <div
@@ -139,6 +151,8 @@ export const TopBar = forwardRef<HTMLElement, { menu: MenuSet; version: BarVersi
           <Icon name="phone" size={16} /> Preview mobile
         </button>
       )}
+      {/* AccountBar puts My Account / Register here. */}
+      <div id="tb-account" className="tb-account" />
     </header>
   )
 })

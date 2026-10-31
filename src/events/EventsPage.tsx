@@ -1,18 +1,18 @@
 import { add, addDays, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameMonth, isToday, startOfMonth, startOfToday, startOfWeek } from 'date-fns'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { SaveBar } from '../brand/shared'
-import { NumberField } from '../brand/TypographyTab'
 import { useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
 import { blankEvent, calView, dateRangeLabel, eventsOn, fmtDate, hourLabel, occursOn, timeLabel, toDate, WEEK } from '../data/events'
 import { resolveColor } from '../lib/theme'
-import { uid, useApplied, useBrand, useSelected } from '../store/BrandStore'
+import { uid, useApplied, useBrand, useSelected, useSession } from '../store/BrandStore'
 import type { CalEvent, CalMode, CalViewSettings } from '../types'
 import { Popover } from '../components/Popover'
 import { isDraft, isTournament } from '../data/eventDetails'
 import { CategoriesDialog, EventForm } from './EventDialogs'
 import { EntriesPage } from './EntriesPage'
 import { EventDetailsPage, RichText } from './EventDetailsPage'
+import { PageHead } from '../site/PageHead'
 import { ExportDialog, ImportDialog, ImportExportMenu } from './ImportExport'
 import { useEventBook } from './useEventBook'
 import { WeekTimeGrid } from './WeekTimeGrid'
@@ -57,7 +57,8 @@ export function EventsPage() {
 
 function CalendarPage() {
   const book = useSelected('events')
-  const { update, navigate } = useBrand()
+  const { update, navigate, saved } = useBrand()
+  const { can } = useSession()
   const { toast } = useDialogs()
   const palette = useApplied('palettes')
   const narrow = useNarrow()
@@ -73,7 +74,10 @@ function CalendarPage() {
   const [catsOpen, setCatsOpen] = useState(false)
   const [io, setIo] = useState<'import' | 'export' | null>(null)
 
-  const view = calView(book)
+  // Sizes come from Page Config; the rest of the view stays with the calendar.
+  const sizes = saved.pages[0].calendar
+  const base = calView(book)
+  const view = { ...base, cellHeight: sizes.cellHeight ?? base.cellHeight, hourHeight: sizes.hourHeight ?? base.hourHeight }
   const byDay = mode === 'week' && view.byDay
   const month = startOfMonth(cursor)
   const start = mode === 'month' ? month : cursor
@@ -108,6 +112,7 @@ function CalendarPage() {
   }
 
   const newEvent = (date = fmtDate(today >= start && today <= end ? today : start), hour?: number) => {
+    if (!can('events.add')) return
     setPop(null)
     const e = blankEvent(uid('ev'), date, book.categories[0]?.id ?? '')
     if (hour != null) Object.assign(e, { startTime: `${String(hour).padStart(2, '0')}:00`, endTime: hour >= 23 ? '23:59' : `${String(hour + 1).padStart(2, '0')}:00` })
@@ -148,10 +153,9 @@ function CalendarPage() {
 
   return (
     <div className="brand-page events-page">
-      <header className="page-head">
-        <h1>Upcoming events</h1>
-        <p>Tournaments, training, social nights and meetings. Double-click a day to add an event on it.</p>
-      </header>
+      <PageHead page="events" title="Upcoming events">
+        Tournaments, training, social nights and meetings.{can('events.add') && ' Double-click a day to add an event on it.'}
+      </PageHead>
 
       {!narrow && (
         <div className="cal-toolbar">
@@ -162,7 +166,7 @@ function CalendarPage() {
               </button>
             ))}
           </div>
-          {mode === 'week' && (
+          {mode === 'week' && can('events.viewSettings') && (
             <label className="check cal-setting">
               <input type="checkbox" checked={view.byDay} onChange={(e) => setView({ byDay: e.target.checked })} />
               View by day
@@ -180,26 +184,8 @@ function CalendarPage() {
                   {hourOptions(view.startHour + 1, 24)}
                 </select>
               </label>
-              <label className="cal-setting">
-                Hour height
-                <NumberField value={view.hourHeight} min={20} max={200} onChange={(n) => n != null && setView({ hourHeight: n })} ariaLabel="Hour height in px" small />
-                px
-              </label>
             </>
-          ) : (
-            <label className="cal-setting">
-              Cell height
-              <NumberField
-                value={view.cellHeight[mode]}
-                min={60}
-                max={900}
-                onChange={(n) => n != null && setView({ cellHeight: { ...view.cellHeight, [mode]: n } })}
-                ariaLabel="Cell height in px"
-                small
-              />
-              px
-            </label>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -242,13 +228,19 @@ function CalendarPage() {
               </button>
             </div>
             <span className="cal-sep" />
-            <button className="ui-btn" onClick={() => setCatsOpen(true)}>
-              <Icon name="tag" size={15} /> Categories
-            </button>
-            <ImportExportMenu onImport={() => setIo('import')} onExport={() => setIo('export')} />
-            <button className="ui-btn ui-btn--primary" onClick={() => newEvent()}>
-              <Icon name="plus" size={15} /> New event
-            </button>
+            {can('events.categories') && (
+              <button className="ui-btn" onClick={() => setCatsOpen(true)}>
+                <Icon name="tag" size={15} /> Categories
+              </button>
+            )}
+            {(can('events.import') || can('events.export')) && (
+              <ImportExportMenu onImport={can('events.import') ? () => setIo('import') : undefined} onExport={can('events.export') ? () => setIo('export') : undefined} />
+            )}
+            {can('events.add') && (
+              <button className="ui-btn ui-btn--primary" onClick={() => newEvent()}>
+                <Icon name="plus" size={15} /> New event
+              </button>
+            )}
           </div>
         </div>
 
@@ -286,7 +278,7 @@ function CalendarPage() {
         )}
       </div>
 
-      <SaveBar slice="events" item={book} noReset />
+      {can('events.viewSettings') && <SaveBar slice="events" item={book} noReset />}
 
       {pop?.kind === 'day' && (
         <Popover rect={pop.rect} onClose={() => setPop(null)} label="Events on this day">
@@ -300,7 +292,7 @@ function CalendarPage() {
             event={popEvent}
             color={catColor(popEvent.category)}
             category={catName(popEvent.category)}
-            onDelete={() => deleteEvent(popEvent)}
+            onDelete={can('events.delete', popEvent) ? () => deleteEvent(popEvent) : undefined}
             onView={() => {
               setPop(null)
               navigate({ page: 'events', eventId: popEvent.id, eventEdit: false })
@@ -412,7 +404,7 @@ function EventDetails({
   color: string
   category: string
   draft: boolean
-  onDelete: () => void
+  onDelete?: () => void
   onView: () => void
 }) {
   return (
@@ -422,6 +414,7 @@ function EventDetails({
           {category}
         </span>
         {draft && <span className="ev-badge ev-badge--draft">Draft</span>}
+        <StatusBadge event={event} />
         {event.memberOnly && <span className="ev-badge">Members only</span>}
         {event.citizensOnly && !/tournament/i.test(category) && <span className="ev-badge">AU & NZ citizens only</span>}
       </div>
@@ -446,12 +439,22 @@ function EventDetails({
         <button className="ui-btn ui-btn--small ui-btn--primary" onClick={onView}>
           View Details
         </button>
-        <button className="ui-btn ui-btn--small ui-btn--danger" onClick={onDelete}>
-          <Icon name="trash" size={14} /> Delete
-        </button>
+        {onDelete && (
+          <button className="ui-btn ui-btn--small ui-btn--danger" onClick={onDelete}>
+            <Icon name="trash" size={14} /> Delete
+          </button>
+        )}
       </div>
     </div>
   )
+}
+
+/** Waiting for an admin (Review and approval), sent back, or an edit waiting. */
+export function StatusBadge({ event }: { event: CalEvent }) {
+  if (event.status === 'pending') return <span className="ev-badge ev-badge--pending">Waiting for approval</span>
+  if (event.status === 'rejected') return <span className="ev-badge ev-badge--rejected">Not approved</span>
+  if (event.pendingChange) return <span className="ev-badge ev-badge--pending">Changes waiting for approval</span>
+  return null
 }
 
 function SearchResults({ events, card, onGo }: { events: CalEvent[]; card: (e: CalEvent, compact?: boolean) => ReactNode; onGo: (e: CalEvent) => void }) {
