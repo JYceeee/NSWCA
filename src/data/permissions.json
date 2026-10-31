@@ -4,7 +4,7 @@
     "Contact Us",
     "Upcoming events",
     "Tournament entries",
-    "Pairings",
+    "Byes",
     "All players",
     "Profile",
     "Brand",
@@ -36,13 +36,10 @@
     { "key": "events.requestBye", "group": "Tournament entries", "label": "Request a bye", "d": [false, true, true, true] },
     { "key": "entries.manage", "group": "Tournament entries", "label": "Add, import, edit and remove entries", "scopes": ["all", "own", "assigned"], "d": [false, false, false, "own"] },
     { "key": "entries.export", "group": "Tournament entries", "label": "Export entries", "scopes": ["all", "own", "assigned"], "d": [false, false, "assigned", "own"] },
-    { "key": "events.uploadPairings", "group": "Tournament entries", "label": "Upload pairing files on the tournament page", "scopes": ["all", "own", "assigned"], "d": [false, false, "assigned", false] },
+    { "key": "events.uploadPairings", "group": "Tournament entries", "label": "Import TRF and pairing files on the tournament page", "scopes": ["all", "own", "assigned"], "d": [false, false, "assigned", false] },
 
-    { "key": "page.pairings", "group": "Pairings", "label": "Open page", "d": [false, false, true, false] },
-    { "key": "pairings.byes", "group": "Pairings", "label": "Byes tab: set and cancel byes", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
-    { "key": "pairings.generate", "group": "Pairings", "label": "Generate, publish and unpublish rounds", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
-    { "key": "pairings.results", "group": "Pairings", "label": "Results tab: enter results", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
-    { "key": "pairings.trf", "group": "Pairings", "label": "Download TRF file", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
+    { "key": "page.byes", "group": "Byes", "label": "Open page", "d": [false, true, true, true] },
+    { "key": "byes.manage", "group": "Byes", "label": "Add, change and cancel byes", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
 
     { "key": "page.players", "group": "All players", "label": "Open page", "d": [false, false, false, true] },
     { "key": "players.add", "group": "All players", "label": "Add player", "d": [false, false, false, false] },
@@ -53,7 +50,6 @@
     { "key": "profile.edit", "group": "Profile", "label": "Edit own profile", "d": [false, true, true, true] },
     { "key": "profile.joinRenew", "group": "Profile", "label": "Join or renew membership", "d": [false, true, true, true] },
     { "key": "profile.tournaments", "group": "Profile", "label": "My tournaments tab", "d": [false, true, true, true] },
-    { "key": "profile.results", "group": "Profile", "label": "My results tab", "d": [false, true, true, true] },
     { "key": "profile.memberDates", "group": "Profile", "label": "Edit join date and last renew date (Admin only)", "adminOnly": true, "d": [false, false, false, false] },
 
     { "key": "page.brand", "group": "Brand", "label": "Open page", "d": [false, false, false, false] },

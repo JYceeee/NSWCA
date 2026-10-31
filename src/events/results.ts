@@ -1,4 +1,4 @@
-// Helpers shared by pairings and My results.
+// Telling players' names apart in pairing files.
 
 const TITLES = new Set(['gm', 'im', 'fm', 'cm', 'wgm', 'wim', 'wfm', 'wcm', 'dr', 'mr', 'mrs', 'ms', 'miss', 'mx', 'prof'])
 
@@ -11,6 +11,3 @@ export const nameKey = (n: string) =>
     .filter((w) => w && !TITLES.has(w))
     .sort()
     .join(' ')
-
-/** 5.5 → "5½" */
-export const fmtPoints = (p: number | null) => (p == null ? '—' : `${Math.floor(p)}${p % 1 ? '½' : ''}`.replace(/^0½$/, '½'))

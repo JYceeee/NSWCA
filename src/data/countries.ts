@@ -95,6 +95,9 @@ export const FEDERATIONS: Federation[] = [...FIDE_FEDS.map(([code, country]) => 
 )
 
 /** FIDE federation for a citizenship (ISO code); Britain defaults to England. */
+/** FIDE federation code for a profile citizenship (ISO 3166 alpha-2). */
+export const fedCode = (citizenship: string) => (citizenship ? fedForCountry(citizenship) : '')
+
 export const fedForCountry = (country: string) => (country === 'GB' ? 'ENG' : FEDERATIONS.find((f) => f.country === country)?.code ?? '')
 
 export const AU_STATES =['Australian Capital Territory', 'New South Wales', 'Northern Territory', 'Queensland', 'South Australia', 'Tasmania', 'Victoria', 'Western Australia']

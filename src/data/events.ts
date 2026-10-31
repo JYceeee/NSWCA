@@ -123,7 +123,6 @@ function sampleTournament(day: (n: number) => string): EventDetailsData {
     ],
     byeRules: '- Up to two half-point byes in rounds 1–5\n- Request byes before the start of round 1',
     forfeitRules: 'Players more than 15 minutes late forfeit the game. Two forfeits and you are withdrawn.',
-    pairingRules: 'Swiss system (FIDE Dutch), paired with Vega.',
     playerRules: '- Mobile phones switched off in the playing hall\n- Record your result at the arbiter’s table',
     spectatorRules: '',
     prizes: '- 1st: $500\n- 2nd: $250\n- 3rd: $125\n- Best Under 1600: $100',
@@ -131,9 +130,6 @@ function sampleTournament(day: (n: number) => string): EventDetailsData {
     entriesClose: `${day(3)}T21:00`,
     registrationUrl: '',
     halfPointByes: true,
-    pabValue: '1',
-    topColour: 'random',
-    seedBy: 'fide',
   }
 }
 

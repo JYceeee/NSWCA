@@ -3,33 +3,30 @@ import { Modal, useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
 import { detailsOf } from '../data/eventDetails'
 import type { CalEvent, PairingBoard, PairingRound, PairingSide } from '../types'
-import { downloadPairingTemplate, isFinished, readPairings, type ParsedRound } from './pairings'
+import { readPairings, readTrf, type ParsedRound } from './pairings'
 import { nameKey } from './results'
 
-/**
- * Pairings (rounds still to finish, with upload) or Results (finished rounds) – the same table, one file per round.
- * A round moves to Results once every game has a result.
- */
+type Preview = { fileName: string; rounds: (ParsedRound & { round: number })[]; startNumbers: Record<string, number>; unmatched: string[]; trf: boolean }
+
+/** The tournament's pairings: a TRF file with every round, or one round's .csv / .xlsx from Vega or Swiss-Manager. */
 export function PairingsSection({
-  event, you, setEvent, mode, canEdit,
+  event, you, setEvent, canEdit,
 }: {
   event: CalEvent
   you: string
   setEvent: (fn: (e: CalEvent) => CalEvent) => void
-  mode: 'pairings' | 'results'
-  /** Upload and remove rounds (organiser / assigned arbiter). */
+  /** Import and remove rounds (organiser / assigned arbiter). */
   canEdit: boolean
 }) {
-  const results = mode === 'results'
   const { confirm, toast } = useDialogs()
   const input = useRef<HTMLInputElement>(null)
   const all = [...(event.pairings ?? [])].sort((a, b) => a.round - b.round)
-  const rounds = all.filter((r) => isFinished(r) === results)
   const scheduled = detailsOf(event).schedule.filter((r) => r.date).length
   const count = Math.max(scheduled, all[all.length - 1]?.round ?? 0)
-  const [shown, setShown] = useState<number | null>(rounds[rounds.length - 1]?.round ?? null)
-  const current = rounds.find((r) => r.round === shown) ?? rounds[rounds.length - 1]
-  const [preview, setPreview] = useState<(ParsedRound & { fileName: string; roundNo: number }) | null>(null)
+  const [shown, setShown] = useState<number | null>(all[all.length - 1]?.round ?? null)
+  const current = all.find((r) => r.round === shown) ?? all[all.length - 1]
+  const [preview, setPreview] = useState<Preview | null>(null)
+  const [previewRound, setPreviewRound] = useState(0)
   const [busy, setBusy] = useState(false)
 
   // Your name on a board, from your entry on this site.
@@ -39,8 +36,14 @@ export function PairingsSection({
   const load = async (f: File) => {
     setBusy(true)
     try {
-      const parsed = await readPairings(f)
-      setPreview({ ...parsed, fileName: f.name, roundNo: parsed.round ?? (all[all.length - 1]?.round ?? 0) + 1 })
+      if (/\.(xlsx|csv)$/i.test(f.name)) {
+        const parsed = await readPairings(f)
+        setPreview({ fileName: f.name, rounds: [{ ...parsed, round: parsed.round ?? (all[all.length - 1]?.round ?? 0) + 1 }], startNumbers: {}, unmatched: [], trf: false })
+      } else {
+        const trf = readTrf(await trfText(f), event.entries ?? [])
+        setPreview({ fileName: f.name, trf: true, ...trf })
+        setPreviewRound(trf.rounds[trf.rounds.length - 1].round)
+      }
     } catch (e) {
       toast(e instanceof Error ? e.message : 'This file could not be read.')
     } finally {
@@ -50,59 +53,49 @@ export function PairingsSection({
 
   const save = () => {
     if (!preview) return
-    const round: PairingRound = {
-      round: preview.roundNo,
-      title: preview.title,
-      fileName: preview.fileName,
-      at: new Date().toISOString(),
-      boards: preview.boards,
-    }
-    setEvent((e) => ({ ...e, pairings: [...(e.pairings ?? []).filter((r) => r.round !== round.round), round] }))
-    setShown(round.round)
+    const at = new Date().toISOString()
+    const next: PairingRound[] = preview.rounds.map((r) => ({ round: r.round, title: r.title, fileName: preview.fileName, at, boards: r.boards }))
+    const numbers = new Set(next.map((r) => r.round))
+    setEvent((e) => ({
+      ...e,
+      startNumbers: { ...e.startNumbers, ...preview.startNumbers },
+      pairings: [...(e.pairings ?? []).filter((r) => !numbers.has(r.round)), ...next],
+    }))
+    setShown(next[next.length - 1].round)
     setPreview(null)
-    toast(`Round ${round.round} pairings saved`)
+    toast(next.length === 1 ? `Round ${next[0].round} pairings saved` : `${next.length} rounds of pairings saved`)
   }
 
   const remove = async (r: PairingRound) => {
-    if (!(await confirm({ title: `Remove round ${r.round} pairings?`, message: 'You can upload them again later.', confirmLabel: 'Remove', danger: true }))) return
+    if (!(await confirm({ title: `Remove round ${r.round} pairings?`, message: 'You can import them again later.', confirmLabel: 'Remove', danger: true }))) return
     setEvent((e) => ({ ...e, pairings: (e.pairings ?? []).filter((x) => x.round !== r.round) }))
     setShown(null)
   }
 
-  const replacing = preview && all.some((r) => r.round === preview.roundNo)
-  const id = results ? 'results' : 'pairings'
-  const heading = (r: PairingRound) =>
-    results ? (r.title ? r.title.replace(/^pairings?\s+(of|for)/i, 'Results of') : `Results of round ${r.round}`) : r.title || `Pairing of round ${r.round}`
+  const replacing = preview?.rounds.filter((p) => all.some((r) => r.round === p.round)).length ?? 0
+  const shownInPreview = preview?.rounds.find((r) => r.round === previewRound) ?? preview?.rounds[0]
 
   return (
-    <section id={`ed-${id}`} className="ed-section">
+    <section id="ed-pairings" className="ed-section">
       <div className="ed-section-head">
-        <h2>{results ? 'Results' : 'Pairings'}</h2>
-        {!results && canEdit && (
-        <div className="ed-section-actions">
-          <button className="ui-btn ui-btn--small" onClick={() => downloadPairingTemplate().catch(() => toast('Could not create the template'))}>
-            <Icon name="download" size={14} /> Download template
-          </button>
-          <button className="ui-btn ui-btn--small" disabled={busy} onClick={() => input.current?.click()}>
-            <Icon name="upload" size={14} /> Upload round
-          </button>
-          {current && (
-            <button className="ui-btn ui-btn--small ui-btn--danger" onClick={() => remove(current)}>
-              <Icon name="trash" size={14} /> Remove round {current.round}
+        <h2>Pairings</h2>
+        {canEdit && (
+          <div className="ed-section-actions">
+            <button className="ui-btn ui-btn--small" disabled={busy} onClick={() => input.current?.click()}>
+              <Icon name="upload" size={14} /> Import TRF
             </button>
-          )}
-        </div>
-        )}
-        {results && current && canEdit && (
-          <button className="ui-btn ui-btn--small ui-btn--danger" onClick={() => remove(current)}>
-            <Icon name="trash" size={14} /> Remove round {current.round}
-          </button>
+            {current && (
+              <button className="ui-btn ui-btn--small ui-btn--danger" onClick={() => remove(current)}>
+                <Icon name="trash" size={14} /> Remove round {current.round}
+              </button>
+            )}
+          </div>
         )}
         <input
           ref={input}
           type="file"
           hidden
-          accept=".csv,.xlsx"
+          accept=".trf,.txt,.csv,.xlsx"
           onChange={(e) => {
             const f = e.target.files?.[0]
             if (f) load(f)
@@ -114,20 +107,12 @@ export function PairingsSection({
       {current ? (
         <>
           <div className="pr-head">
-            <h3>{heading(current)}</h3>
+            <h3>{current.title || `Pairing of round ${current.round}`}</h3>
             <div className="pr-rounds" role="tablist" aria-label="Round">
               {Array.from({ length: count }, (_, i) => i + 1).map((n) => {
-                const has = rounds.some((r) => r.round === n)
+                const has = all.some((r) => r.round === n)
                 return (
-                  <button
-                    key={n}
-                    role="tab"
-                    aria-selected={current.round === n}
-                    disabled={!has}
-                    title={has ? `Round ${n}` : all.some((r) => r.round === n) ? (results ? `Round ${n} – not finished yet` : `Round ${n} – finished, see Results`) : `Round ${n} – not uploaded yet`}
-                    className={current.round === n ? 'pr-round pr-round--on' : 'pr-round'}
-                    onClick={() => setShown(n)}
-                  >
+                  <button key={n} role="tab" aria-selected={current.round === n} disabled={!has} title={has ? `Round ${n}` : `Round ${n} – not imported yet`} className={current.round === n ? 'pr-round pr-round--on' : 'pr-round'} onClick={() => setShown(n)}>
                     {n}
                   </button>
                 )
@@ -137,49 +122,65 @@ export function PairingsSection({
           <PairingTable boards={current.boards} isYou={isYou} />
         </>
       ) : (
-        <p className="muted">
-          {results
-            ? 'No finished rounds yet. A round appears here once its file in Pairings has every result filled in.'
-            : all.length
-              ? 'All uploaded rounds are finished – see Results. Upload the next round’s pairings here.'
-              : 'No pairings yet. Upload each round’s pairings exported from Vega or Swiss-Manager (.csv or .xlsx). Upload it again with the results to move it to Results.'}
-        </p>
+        <p className="muted">No pairings yet. Import the TRF file exported from Vega or Swiss-Manager (.csv and .xlsx round exports work too).</p>
       )}
 
-      {preview && (
-        <Modal title="Upload pairings" onClose={() => setPreview(null)} width={980}>
+      {preview && shownInPreview && (
+        <Modal title="Import pairings" onClose={() => setPreview(null)} width={980}>
           <div className="modal-body">
             <div className="pr-preview-head">
-              <label className="form-row">
-                <span>Round</span>
-                <input
-                  className="ui-input"
-                  type="number"
-                  min={1}
-                  max={99}
-                  value={preview.roundNo}
-                  onChange={(e) => setPreview({ ...preview, roundNo: Math.max(1, Number(e.target.value) || 1) })}
-                  style={{ width: 90 }}
-                />
-              </label>
+              {preview.trf ? (
+                <div className="pr-rounds" role="tablist" aria-label="Round">
+                  {preview.rounds.map((r) => (
+                    <button key={r.round} role="tab" aria-selected={r.round === shownInPreview.round} className={r.round === shownInPreview.round ? 'pr-round pr-round--on' : 'pr-round'} onClick={() => setPreviewRound(r.round)}>
+                      {r.round}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <label className="form-row">
+                  <span>Round</span>
+                  <input
+                    className="ui-input"
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={shownInPreview.round}
+                    onChange={(e) => setPreview({ ...preview, rounds: [{ ...shownInPreview, round: Math.max(1, Number(e.target.value) || 1) }] })}
+                    style={{ width: 90 }}
+                  />
+                </label>
+              )}
               <span className="muted small">
-                {preview.boards.length} boards from {preview.fileName}
-                {preview.title && ` · “${preview.title}”`}
-                {replacing && ` · replaces the round ${preview.roundNo} already uploaded`}
+                {preview.rounds.length} {preview.rounds.length === 1 ? 'round' : 'rounds'} from {preview.fileName}
+                {replacing > 0 && ` · replaces ${replacing} already here`}
               </span>
             </div>
-            <PairingTable boards={preview.boards} isYou={isYou} />
+            {preview.unmatched.length > 0 && (
+              <p className="muted small">
+                Not matched to an entry on this site, shown by name only: {preview.unmatched.slice(0, 8).join('; ')}
+                {preview.unmatched.length > 8 && ` and ${preview.unmatched.length - 8} more`}.
+              </p>
+            )}
+            <PairingTable boards={shownInPreview.boards} isYou={isYou} />
           </div>
           <div className="modal-actions">
             <button className="ui-btn" onClick={() => setPreview(null)}>Cancel</button>
             <button className="ui-btn ui-btn--primary" onClick={save}>
-              {replacing ? `Replace round ${preview.roundNo}` : `Save round ${preview.roundNo}`}
+              {preview.rounds.length === 1 ? `Save round ${shownInPreview.round}` : `Save ${preview.rounds.length} rounds`}
             </button>
           </div>
         </Modal>
       )}
     </section>
   )
+}
+
+/** TRF files are UTF-8 or, from older programs, Windows-1252. */
+async function trfText(f: File) {
+  const buf = await f.arrayBuffer()
+  const text = new TextDecoder('utf-8').decode(buf)
+  return text.includes('�') ? new TextDecoder('windows-1252').decode(buf) : text
 }
 
 function Player({ s, color, you }: { s: PairingSide; color: 'white' | 'black'; you: boolean }) {

@@ -36,7 +36,7 @@ export function builtinSlices(): Slices {
   }
 }
 
-const PAGE_IDS: PageId[] = ['home', 'contact', 'brand', 'menu', 'pages', 'documents', 'players', 'events', 'pairings', 'profile', 'users', 'approvals', 'enquiries']
+const PAGE_IDS: PageId[] = ['home', 'contact', 'brand', 'menu', 'pages', 'documents', 'players', 'events', 'byes', 'profile', 'users', 'approvals', 'enquiries']
 
 const SLICES: SliceKey[] = ['palettes', 'typography', 'backgrounds', 'logos', 'menus', 'events', 'pages']
 
@@ -171,7 +171,7 @@ function initialUi(saved: SavedState): UiState {
 
 const TABS: BrandTab[] = ['palette', 'logos', 'typography', 'components']
 const MENU_TABS: MenuTab[] = ['sidebar', 'topbar', 'footer']
-const CONTENT_PAGES: PageId[] = ['home', 'contact', 'pages', 'documents', 'players', 'events', 'pairings', 'profile', 'users', 'approvals', 'enquiries']
+const CONTENT_PAGES: PageId[] = ['home', 'contact', 'pages', 'documents', 'players', 'events', 'byes', 'profile', 'users', 'approvals', 'enquiries']
 
 /** #palette … #components = Brand tabs, #menu/sidebar = Menu tabs, #events = a page. */
 function parseHash(h: string): NavTarget | null {
@@ -249,7 +249,7 @@ const Ctx = createContext<Store | null>(null)
 export type SessionStatus = 'local' | 'loading' | 'online' | 'offline'
 
 /** What can still be done without the server: looking at pages. */
-const READ_ONLY_GRANTS = /^(page\.(home|contact|events|pairings|players|profile|documents)|events\.viewEntries|profile\.(tournaments|results))$/
+const READ_ONLY_GRANTS = /^(page\.(home|contact|events|byes|players|profile|documents)|events\.viewEntries|profile\.tournaments)$/
 
 export interface Session {
   status: SessionStatus

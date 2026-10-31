@@ -161,7 +161,7 @@ export interface Profile {
 
 export type BrandTab = 'palette' | 'logos' | 'typography' | 'components'
 
-export type PageId = 'home' | 'contact' | 'brand' | 'menu' | 'pages' | 'documents' | 'players' | 'events' | 'pairings' | 'profile' | 'users' | 'approvals' | 'enquiries'
+export type PageId = 'home' | 'contact' | 'brand' | 'menu' | 'pages' | 'documents' | 'players' | 'events' | 'byes' | 'profile' | 'users' | 'approvals' | 'enquiries'
 export type MenuTab = 'sidebar' | 'topbar' | 'footer'
 /** On light / on dark version of the top bar or footer. */
 export type BarVersion = 'light' | 'dark'
@@ -273,12 +273,14 @@ export interface EventBye {
   id: string
   entryId: string
   round: number
-  /** Who set it: the player (from the tournament page) or the organiser (Pairings › Byes). */
+  /** Who set it: the player (from the tournament page) or the organiser (Byes page). */
   by: 'player' | 'organiser'
   /** ISO time set. */
   at: string
-  /** Value the organiser chose in Pairings › Byes (½ still needs the half-point rules to allow it). */
+  /** Value the organiser chose on the Byes page (½ still needs the half-point rules to allow it). */
   value?: 0 | 0.5
+  /** Handled on the Byes page: the player's row reads Updated once all their byes are. */
+  done?: boolean
 }
 
 export interface PairingSide {
@@ -353,7 +355,6 @@ export interface EventDetailsData {
   divisions: { id: string; name: string; ratingRange: string }[]
   byeRules: string
   forfeitRules: string
-  pairingRules: string
   playerRules: string
   spectatorRules: string
   prizes: string
@@ -364,10 +365,6 @@ export interface EventDetailsData {
   registrationUrl: string
   /** Bye rules tickbox: requested byes are worth ½ point (max two per player). */
   halfPointByes?: boolean
-  /** Pairing settings. '' = not chosen yet. */
-  pabValue?: '' | '1' | '0.5' | '0'
-  topColour?: '' | 'white' | 'black' | 'random'
-  seedBy?: '' | 'fide' | 'acf'
 }
 
 /** A player kept in Admin › All players. Tournament entries link to it by playerId. */

@@ -53,6 +53,7 @@ function norm_bye(array $b): array
         'by' => ($b['by'] ?? '') === 'player' ? 'player' : 'organiser',
         'at' => s($b['at'] ?? ''),
         'value' => $v === null || $v === '' ? null : ((float) $v === 0.5 ? 0.5 : 0),
+        'done' => !empty($b['done']),
     ];
 }
 
@@ -153,7 +154,7 @@ function load_events(?array $ids = null): array
                 'details' => $details,
             ]),
             'entries' => $ents,
-            'byes' => array_map(fn($b) => norm_bye(['id' => $b['id'], 'entryId' => $b['entry_id'], 'round' => $b['round_no'], 'by' => $b['set_by'], 'at' => $b['set_at'], 'value' => $b['value']]), $byes[$id] ?? []),
+            'byes' => array_map(fn($b) => norm_bye(['id' => $b['id'], 'entryId' => $b['entry_id'], 'round' => $b['round_no'], 'by' => $b['set_by'], 'at' => $b['set_at'], 'value' => $b['value'], 'done' => (bool) $b['done']]), $byes[$id] ?? []),
             'pairings' => array_map(fn($rd) => norm_round([
                 'round' => $rd['round_no'], 'title' => $rd['title'], 'fileName' => $rd['file_name'], 'at' => $rd['released_at'], 'generated' => (bool) $rd['is_generated'],
                 'boards' => array_map(fn($b) => ['board' => $b['board_no'], 'white' => $side($b, 'white'), 'black' => $side($b, 'black'), 'result' => $b['result'], 'byeKind' => $b['bye_kind']],
@@ -205,7 +206,7 @@ function can_see_event(array $ev): bool
 function sees_contacts(array $ev): bool
 {
     $ctx = event_ctx($ev);
-    return can('entries.manage', $ctx) || can('entries.export', $ctx) || can('page.players') || can('pairings.generate', $ctx);
+    return can('entries.manage', $ctx) || can('entries.export', $ctx) || can('page.players') || can('events.uploadPairings', $ctx);
 }
 
 function strip_nulls(array $a): array
@@ -290,8 +291,8 @@ function save_event(array $ev, string $status, ?int $createdBy): void
 
     q('DELETE FROM event_byes WHERE event_id = ?', [$id]);
     foreach ($ev['byes'] as $b)
-        q('INSERT INTO event_byes (id, event_id, entry_id, round_no, set_by, set_at, value, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [$b['id'], $id, $b['entryId'], $b['round'], $b['by'], $b['at'], $b['value'], $reasons[$b['id']] ?? null]);
+        q('INSERT INTO event_byes (id, event_id, entry_id, round_no, set_by, set_at, value, reason, done) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [$b['id'], $id, $b['entryId'], $b['round'], $b['by'], $b['at'], $b['value'], $reasons[$b['id']] ?? null, (int) $b['done']]);
 
     q('DELETE FROM pairing_rounds WHERE event_id = ?', [$id]);
     foreach ($ev['pairings'] as $r) {
@@ -363,14 +364,6 @@ function entry_user(array $entry): ?array
     return row('SELECT u.id, u.status FROM users u LEFT JOIN profiles p ON p.user_id = u.id
                 WHERE (? <> \'\' AND (LOWER(u.email) = ? OR LOWER(p.email) = ?)) OR (? IS NOT NULL AND u.player_id = ?) LIMIT 1',
         [$email, $email, $email, $entry['playerId'], $entry['playerId']]);
-}
-
-/** Only the board results differ between two versions of a round. */
-function only_results_changed(?array $a, ?array $b): bool
-{
-    if ($a === null || $b === null || count($a['boards']) !== count($b['boards'])) return false;
-    $strip = fn($r) => [...$r, 'boards' => array_map(fn($x) => [...$x, 'result' => ''], $r['boards'])];
-    return same($strip($a), $strip($b));
 }
 
 /**
@@ -445,21 +438,20 @@ function put_event(?array $baseIn, array $nextIn): array
             $entry = $entryById[$x['entryId']] ?? null;
             $own = $entry && is_mine($entry) && ($b === null || $b['by'] === 'player') && ($n === null || $n['by'] === 'player');
             if ($own) need('events.requestBye', $ctx, 'request byes');
-            else need('pairings.byes', $ctx, 'set byes in this tournament');
+            else need('byes.manage', $ctx, 'set byes in this tournament');
         }
 
         [$merged['pairings'], $changes] = merge_list($B['pairings'], $N['pairings'], $cur['pairings'], 'round', 'the pairings');
         foreach ($changes as [, $b, $n]) {
-            if (only_results_changed($b, $n)) need_any(['pairings.results', 'events.uploadPairings'], $ctx, 'enter results in this tournament');
-            else need_any(['pairings.generate', 'events.uploadPairings'], $ctx, 'change the pairings of this tournament');
+            need('events.uploadPairings', $ctx, 'change the pairings of this tournament');
         }
         usort($merged['pairings'], fn($a, $b) => $a['round'] <=> $b['round']);
 
         [$merged['startNumbers'], $changed] = merge_one($B['startNumbers'], $N['startNumbers'], $cur['startNumbers'], 'the start numbers');
-        if ($changed) need_any(['pairings.generate', 'events.uploadPairings', 'entries.manage'], $ctx, 'change start numbers');
+        if ($changed) need_any(['events.uploadPairings', 'entries.manage'], $ctx, 'change start numbers');
 
         [$merged['results'], $changed] = merge_one($B['results'], $N['results'], $cur['results'], 'the results');
-        if ($changed) need_any(['pairings.results', 'events.uploadPairings'], $ctx, 'upload results');
+        if ($changed) need('events.uploadPairings', $ctx, 'upload results');
 
         link_players($merged);
         save_event($merged, $status, $cur['meta']['createdBy']);

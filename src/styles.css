@@ -1363,3 +1363,13 @@ th:hover .col-move, .fg-col-head:hover .col-move, .col-move:focus-within { opaci
 .hm-section > .hm-wrap, .hm-emphasis > .hm-wrap { width: 100%; box-sizing: border-box; }
 .page-head--tall { display: flex; align-items: center; }
 .page-head--tall.ap-head { justify-content: space-between; }
+
+/* ---------- Byes ---------- */
+.by-grid { width: 100%; }
+.by-sort { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.by-sort:hover { color: var(--t-heading); }
+.by-sort span { display: inline-flex; }
+.by-sort-up { transform: rotate(180deg); }
+.by-status { min-width: 120px; }
+.by-row--updated td { background: var(--t-success-tint); }
+.by-row--updated .by-status, .by-row--updated .by-status select { color: var(--t-success); font-weight: 600; }

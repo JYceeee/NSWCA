@@ -4,22 +4,20 @@ import { useAssetUrl } from '../brand/shared'
 import { useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
 import { Popover } from '../components/Popover'
-import { AU_STATES, COUNTRIES, countryName, dialCode, FEDERATIONS } from '../data/countries'
+import { AU_STATES, COUNTRIES, countryName, dialCode, FEDERATIONS, fedCode } from '../data/countries'
 import { fmtDate, toDate } from '../data/events'
 import { deleteAsset, putAsset } from '../lib/db'
 import { uid, useBrand, useSession } from '../store/BrandStore'
 import type { Profile } from '../types'
-import { fedCode } from '../pairing/engine'
 import { TITLES } from '../events/pairings'
 import { Combobox } from './Combobox'
-import { MyResults, MyTournaments } from './ProfileTabs'
+import { MyTournaments } from './ProfileTabs'
 import { PageHead } from '../site/PageHead'
 
-type ProfileTab = 'info' | 'tournaments' | 'results'
+type ProfileTab = 'info' | 'tournaments'
 const PROFILE_TABS: { id: ProfileTab; label: string; icon: string }[] = [
   { id: 'info', label: 'Personal info', icon: 'user' },
   { id: 'tournaments', label: 'My tournaments', icon: 'calendar' },
-  { id: 'results', label: 'My results', icon: 'grid' },
 ]
 
 export const PREFIXES = ['', 'Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.', 'Prof.']
@@ -115,7 +113,7 @@ export function ProfilePage() {
   return (
     <div className="brand-page profile-page">
       <PageHead page="profile" title="Profile">
-        Your personal details, tournaments and results.
+        Your personal details and tournaments.
       </PageHead>
       <ProfileScreen
         value={saved.profile}
@@ -126,7 +124,7 @@ export function ProfilePage() {
         canJoin={can('profile.joinRenew')}
         canEditDates={user?.role === 'admin'}
         locked={locked}
-        tabs={PROFILE_TABS.filter((t) => t.id === 'info' || can(t.id === 'tournaments' ? 'profile.tournaments' : 'profile.results'))}
+        tabs={PROFILE_TABS.filter((t) => t.id === 'info' || can('profile.tournaments'))}
       />
     </div>
   )
@@ -257,8 +255,6 @@ export function ProfileScreen({
       )}
       {!draft && tab === 'tournaments' ? (
         <MyTournaments p={profile} />
-      ) : !draft && tab === 'results' ? (
-        <MyResults p={profile} />
       ) : draft ? (
         <EditProfile
           p={draft}

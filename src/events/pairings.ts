@@ -1,7 +1,7 @@
-// Round pairings exported from Vega or Swiss-Manager (.csv / .xlsx).
-import type { PairingBoard, PairingRound, PairingSide } from '../types'
+// Round pairings exported from Vega or Swiss-Manager: a TRF file with every round, or one round as .csv / .xlsx.
+import type { EventEntry, PairingBoard, PairingSide } from '../types'
 import { nameKey } from './results'
-import { loadExcel, readGrid, str } from './spreadsheet'
+import { readGrid, str } from './spreadsheet'
 
 const norm = (h: string) => h.toLowerCase().replace(/[^a-z0-9]/g, '')
 
@@ -103,77 +103,65 @@ export async function readPairings(file: File): Promise<ParsedRound> {
   return { round: num ? Number(num) : null, title, boards }
 }
 
-/** A round is finished when every game has a result (byes count as played). */
-export const isFinished = (r: PairingRound) => r.boards.length > 0 && r.boards.every((b) => !b.black || b.result.trim())
+// ---------- TRF (FIDE Tournament Report File) ----------
 
-const VAL: Record<string, number> = { '1': 1, '+': 1, '½': 0.5, '0': 0, '-': 0 }
+const SCORE: Record<string, number> = { '1': 1, '+': 1, W: 1, F: 1, U: 1, '=': 0.5, D: 0.5, H: 0.5, '0': 0, '-': 0, L: 0, Z: 0 }
+/** White's result letter as shown on the board. */
+const GAME: Record<string, string> = { '1': '1 - 0', W: '1 - 0', '0': '0 - 1', L: '0 - 1', '=': '½ - ½', D: '½ - ½', '+': '+ - -', '-': '- - +' }
 
-/** Points White and Black scored on a board ("1 - 0", "½ - ½", "+ - -", bye "1"). */
-export function boardScore(b: PairingBoard): [number, number] {
-  const m = b.result.match(/^(1|0|½|\+|-)\s*-\s*(1|0|½|\+|-)/)
-  if (m) return [VAL[m[1]], VAL[m[2]]]
-  return [VAL[b.result.trim()] ?? 0, 0]
+interface TrfBlock {
+  opponent: number
+  colour: string
+  result: string
 }
 
-const num = (s: string) => (Number.isFinite(Number(s)) ? Number(s) : 0)
-
-export interface Standing {
-  name: string
-  points: number
-  /** 1 = first; shared places have the same number. */
-  place: number
-  tied: boolean
-}
-
-/** Standings after the latest finished round: points before it (from the file) plus the game's score. */
-export function standings(rounds: PairingRound[]): { after: number; table: Standing[] } | null {
-  const last = [...rounds].filter(isFinished).sort((a, b) => b.round - a.round)[0]
-  if (!last) return null
-  const rows: { name: string; points: number }[] = []
-  for (const b of last.boards) {
-    const [w, k] = boardScore(b)
-    rows.push({ name: b.white.name, points: num(b.white.pts) + w })
-    if (b.black) rows.push({ name: b.black.name, points: num(b.black.pts) + k })
+/** The fixed columns of a player's "001" line; each round is a 10-character block from column 92. */
+function trfPlayer(line: string, entries: EventEntry[]) {
+  const name = line.slice(14, 47).trim()
+  const fideId = line.slice(57, 68).trim()
+  const blocks: (TrfBlock | null)[] = []
+  for (let i = 91; i < line.length; i += 10) {
+    const b = line.slice(i, i + 8)
+    blocks.push(b.trim() ? { opponent: Number(b.slice(0, 4)) || 0, colour: b.slice(5, 6).toLowerCase(), result: b.slice(7, 8).toUpperCase() } : null)
   }
-  rows.sort((a, b) => b.points - a.points)
-  const table = rows.map((r) => {
-    const place = rows.findIndex((x) => x.points === r.points) + 1
-    return { ...r, place, tied: rows.filter((x) => x.points === r.points).length > 1 }
-  })
-  return { after: last.round, table }
+  const entry = (fideId && Number(fideId) ? entries.find((x) => x.fideId.trim() === fideId) : undefined) ?? entries.find((x) => nameKey(x.name) === nameKey(name))
+  return { sno: Number(line.slice(4, 8)), title: line.slice(10, 13).trim().toUpperCase(), name, fed: line.slice(53, 56).trim().toUpperCase(), entryId: entry?.id, blocks }
 }
 
-/** One player's line in the standings, found by name. */
-export function standingOf(rounds: PairingRound[], name: string) {
-  const s = standings(rounds)
-  const me = s?.table.find((r) => nameKey(r.name) === nameKey(name))
-  return s && me ? { ...me, of: s.table.length, after: s.after } : null
-}
+export function readTrf(text: string, entries: EventEntry[]) {
+  const players = text.split(/\r?\n/).filter((l) => l.startsWith('001')).map((l) => trfPlayer(l, entries))
+  if (!players.length) throw new Error('No players found. Export the tournament from Vega or Swiss-Manager as a TRF file.')
+  const bySno = new Map(players.map((p) => [p.sno, p]))
+  const points = new Map(players.map((p) => [p.sno, 0]))
+  const rounds: (ParsedRound & { round: number })[] = []
+  const total = Math.max(...players.map((p) => p.blocks.length))
 
-const TEMPLATE_HEADER = ['Bo.', 'No.', 'Fed', 'Tit', 'White Player', 'Pts', 'Result', 'Pts', 'No.', 'Tit', 'Black Player', 'Fed']
+  for (let r = 0; r < total; r++) {
+    const side = (p: (typeof players)[number]): PairingSide => ({ entryId: p.entryId, sno: String(p.sno), title: p.title, name: p.name, fed: p.fed, pts: String(points.get(p.sno)) })
+    const games: PairingBoard[] = []
+    const byes: PairingBoard[] = []
+    for (const p of players) {
+      const b = p.blocks[r]
+      if (!b) continue
+      const opp = bySno.get(b.opponent)
+      if (opp) {
+        if (b.colour === 'w') games.push({ board: 0, white: side(p), black: side(opp), result: GAME[b.result] ?? '' })
+      } else {
+        const half = b.result === 'H'
+        const full = 'FU+'.includes(b.result) && b.result !== ''
+        byes.push({ board: 0, white: side(p), black: null, result: half ? '½' : full ? '1' : '0', byeKind: half ? 'half' : full ? 'pab' : 'zero' })
+      }
+    }
+    // Later rounds in the file with only absences haven't been paired yet.
+    if (!games.length && !byes.some((b) => b.byeKind !== 'zero')) continue
+    const top = (b: PairingBoard) => Math.max(Number(b.white.pts), Number(b.black?.pts ?? 0))
+    games.sort((a, b) => top(b) - top(a) || Number(a.white.sno) - Number(b.white.sno))
+    rounds.push({ round: r + 1, title: `Pairing of round ${r + 1}`, boards: [...games, ...byes].map((b, i) => ({ ...b, board: i + 1 })) })
+    for (const p of players) points.set(p.sno, (points.get(p.sno) ?? 0) + (SCORE[p.blocks[r]?.result ?? ''] ?? 0))
+  }
+  if (!rounds.length) throw new Error('This TRF file has no rounds yet.')
 
-/** An .xlsx in the layout readPairings understands: title row, header, example boards (a result, an unplayed game, a bye). */
-export async function downloadPairingTemplate() {
-  const ExcelJS = await loadExcel()
-  const wb = new ExcelJS.Workbook()
-  const ws = wb.addWorksheet('Round 1', { views: [{ state: 'frozen', ySplit: 3 }] })
-  const today = new Date()
-  const date = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`
-  ws.addRow([`Pairing of round 1, at 1000 of ${date}`]).font = { bold: true, size: 13 }
-  ws.addRow([])
-  ws.addRow(TEMPLATE_HEADER).font = { bold: true }
-  ws.addRow([1, 1, 'AUS', 'IM', 'Surname, Firstname', 0, '1/2-1/2', 0, 5, 'FM', 'Surname, Firstname', 'AUS'])
-  ws.addRow([2, 6, 'AUS', '', 'Surname, Firstname', 0, '1-0', 0, 2, '', 'Surname, Firstname', 'NZL'])
-  ws.addRow([3, 3, 'AUS', 'CM', 'Surname, Firstname', 0, '', 0, 4, '', 'Surname, Firstname', 'AUS'])
-  ws.addRow([4, 7, 'AUS', '', 'Surname, Firstname', 0, '1', 0, '', '', '( bye )', ''])
-  ws.addRow([])
-  ws.addRow(['Result: 1-0, 0-1, 1/2-1/2, +/- for forfeits; leave empty until played. Black Player "( bye )" for a bye. Pts = points before this round.']).font = { italic: true, color: { argb: 'FF777777' } }
-  const widths = [6, 6, 6, 6, 26, 6, 10, 6, 6, 6, 26, 6]
-  widths.forEach((w, i) => (ws.getColumn(i + 1).width = w))
-  const buf = await wb.xlsx.writeBuffer()
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
-  a.download = 'pairings-template.xlsx'
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  const startNumbers: Record<string, number> = {}
+  for (const p of players) if (p.entryId) startNumbers[p.entryId] = p.sno
+  return { rounds, startNumbers, unmatched: players.filter((p) => !p.entryId).map((p) => p.name) }
 }

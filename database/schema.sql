@@ -280,6 +280,8 @@ CREATE TABLE IF NOT EXISTS event_byes (
   set_at      VARCHAR(32)  NOT NULL DEFAULT '',
   value       DECIMAL(2,1) NULL,
   reason      VARCHAR(16)  NULL,
+  -- Handled on the Byes page (a player's row is Updated when all their byes are).
+  done        TINYINT(1)   NOT NULL DEFAULT 0,
   PRIMARY KEY (event_id, id),
   KEY ix_byes_entry (event_id, entry_id, round_no),
   CONSTRAINT fk_byes_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE

@@ -3,7 +3,7 @@ import type { CalEvent, EventCategory, EventDetailsData, Profile, TimeType } fro
 import { toPlain } from '../lib/richtext'
 import { toDate } from './events'
 
-export type SectionKind = 'schedule' | 'venue' | 'contact' | 'text' | 'fees' | 'divisions' | 'datetime' | 'url' | 'pairingSettings'
+export type SectionKind = 'schedule' | 'venue' | 'contact' | 'text' | 'fees' | 'divisions' | 'datetime' | 'url'
 
 export interface SectionDef {
   id: keyof EventDetailsData
@@ -40,8 +40,6 @@ export const SECTIONS: SectionDef[] = [
   { id: 'divisions', label: 'Divisions', kind: 'divisions', required: false, hint: 'Leave empty if the tournament has one section' },
   { id: 'byeRules', label: 'Bye rules', kind: 'text', required: true },
   { id: 'forfeitRules', label: 'Forfeit rules', kind: 'text', required: true },
-  { id: 'pairingRules', label: 'Pairing rules', kind: 'text', required: true },
-  { id: 'pabValue', label: 'Pairing settings', kind: 'pairingSettings', required: true, hint: 'Used by Pairings › Generate pairing.' },
   { id: 'playerRules', label: 'Rules for players', kind: 'text', required: false },
   { id: 'spectatorRules', label: 'Rules for spectators', kind: 'text', required: false },
   { id: 'prizes', label: 'Prizes', kind: 'text', required: true },
@@ -52,9 +50,9 @@ export const SECTIONS: SectionDef[] = [
 
 export const emptyDetails = (): EventDetailsData => ({
   schedule: [], venue: { name: '', room: '', address: '', mapUrl: '', note: '' }, contact: { name: '', email: '', phone: '' }, eventDetails: '', fees: [], feesNote: '',
-  regulations: '', timeControl: '', timeTypes: [], divisions: [], byeRules: '', forfeitRules: '', pairingRules: '', playerRules: '', spectatorRules: '',
+  regulations: '', timeControl: '', timeTypes: [], divisions: [], byeRules: '', forfeitRules: '', playerRules: '', spectatorRules: '',
   prizes: '', terms: '', entriesClose: '', registrationUrl: '',
-  halfPointByes: false, pabValue: '', topColour: '', seedBy: '',
+  halfPointByes: false,
 })
 
 export const detailsOf = (e: CalEvent): EventDetailsData => ({ ...emptyDetails(), ...e.details })
@@ -76,8 +74,6 @@ export function sectionFilled(d: EventDetailsData, s: SectionDef): boolean {
       return d.fees.some((f) => f.type.trim() && f.amount.trim())
     case 'divisions':
       return d.divisions.some((x) => x.name.trim())
-    case 'pairingSettings':
-      return !!(d.pabValue && d.topColour && d.seedBy)
     case 'text':
       if (s.id === 'timeControl' && !d.timeTypes?.length) return false
       return !!toPlain(String(d[s.id] ?? '')).trim()

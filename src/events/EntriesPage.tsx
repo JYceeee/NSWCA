@@ -136,7 +136,6 @@ export function EntriesPage({ id }: { id: string }) {
   const d = detailsOf(event)
   const divisions = d.divisions.filter((x) => x.name.trim())
   const divisionName = (dv: string) => divisions.find((x) => x.id === dv)?.name ?? ''
-  const locked = (event.pairings ?? []).length > 0
   const back = () => navigate({ page: 'events', eventId: id, eventEdit: false, eventEntries: false })
 
   const patch = (rowId: string, p: Partial<EventEntry>) => {
@@ -208,12 +207,6 @@ export function EntriesPage({ id }: { id: string }) {
         </p>
       </header>
 
-      {locked && (
-        <div className="pg-note pg-note--warn ae-locked">
-          <Icon name="info" size={16} /> Pairings have been released for this tournament, so entries can’t be changed. You can still export them.
-        </div>
-      )}
-
       <div className="ae-toolbar">
         <div className="cal-search">
           <Icon name="search" size={15} />
@@ -225,7 +218,7 @@ export function EntriesPage({ id }: { id: string }) {
             <button className="ui-btn ui-btn--small" onClick={() => exportRows(draft.filter((x) => ticked.has(x.id)), 'selected')}>
               <Icon name="download" size={14} /> Export selected
             </button>
-            <button className="ui-btn ui-btn--small ui-btn--danger" disabled={locked} title={locked ? 'Pairings released – entries are locked' : undefined} onClick={removeTicked}>
+            <button className="ui-btn ui-btn--small ui-btn--danger" onClick={removeTicked}>
               <Icon name="trash" size={14} /> Remove selected
             </button>
             <button className="ui-btn ui-btn--small" onClick={() => setTicked(new Set())}>
@@ -234,10 +227,10 @@ export function EntriesPage({ id }: { id: string }) {
           </div>
         )}
         <span className="ae-toolbar-gap" />
-        <button className="ui-btn" disabled={locked} onClick={() => setDialog('add')}>
+        <button className="ui-btn" onClick={() => setDialog('add')}>
           <Icon name="plus" size={15} /> Add
         </button>
-        <button className="ui-btn" disabled={locked} onClick={() => setDialog('import')}>
+        <button className="ui-btn" onClick={() => setDialog('import')}>
           <Icon name="upload" size={15} /> Import
         </button>
         <button className="ui-btn" disabled={!draft.length} onClick={exportAll}>
@@ -279,7 +272,7 @@ export function EntriesPage({ id }: { id: string }) {
           </thead>
           <tbody>
             {rows.map((x) => {
-              const editable = !locked && isOrganiserAdded(x)
+              const editable = isOrganiserAdded(x)
               const text = (k: 'name' | 'fed' | 'fideId' | 'fideStandard' | 'fideRapid' | 'fideBlitz' | 'acfId' | 'acfRating', width: string) =>
                 editable ? (
                   <input className="ae-input" style={{ width }} value={(x[k] as string) ?? ''} aria-label={k} onChange={(e) => patch(x.id, { [k]: e.target.value })} />
@@ -328,18 +321,14 @@ export function EntriesPage({ id }: { id: string }) {
                   <td>{text('acfRating', '64px')}</td>
                   <td>
                     {divisions.length ? (
-                      locked ? (
-                        divisionName(x.division) || <span className="muted">—</span>
-                      ) : (
-                        <select className="ae-input" value={x.division} aria-label="Division" onChange={(e) => patch(x.id, { division: e.target.value })}>
-                          <option value="">—</option>
-                          {divisions.map((dv) => (
-                            <option key={dv.id} value={dv.id}>
-                              {dv.name}
-                            </option>
-                          ))}
-                        </select>
-                      )
+                      <select className="ae-input" value={x.division} aria-label="Division" onChange={(e) => patch(x.id, { division: e.target.value })}>
+                        <option value="">—</option>
+                        {divisions.map((dv) => (
+                          <option key={dv.id} value={dv.id}>
+                            {dv.name}
+                          </option>
+                        ))}
+                      </select>
                     ) : (
                       <span className="muted">—</span>
                     )}
@@ -356,7 +345,7 @@ export function EntriesPage({ id }: { id: string }) {
                     <span className={`ae-source ae-source--${sourceOf(x)}`}>{SOURCE_LABEL[sourceOf(x)]}</span>
                   </td>
                   <td>
-                    <button className="icon-btn icon-btn--danger" disabled={locked} title={locked ? 'Pairings released – entries are locked' : 'Remove player'} onClick={() => remove(x)}>
+                    <button className="icon-btn icon-btn--danger" title="Remove player" onClick={() => remove(x)}>
                       <Icon name="trash" size={15} />
                     </button>
                   </td>
@@ -374,26 +363,24 @@ export function EntriesPage({ id }: { id: string }) {
         </table>
       </div>
 
-      {!locked && (
-        <div className="save-bar">
-          <span className={dirty ? 'save-status save-status--dirty' : 'save-status'}>
-            {dirty ? `${changed.length} player${changed.length === 1 ? '' : 's'} changed – unsaved` : 'All changes saved'}
-          </span>
-          <button
-            className="ui-btn"
-            disabled={!dirty}
-            onClick={() => {
-              setDraft(structuredClone(entries))
-              setErrors({})
-            }}
-          >
-            Discard changes
-          </button>
-          <button className="ui-btn ui-btn--primary" disabled={!dirty} onClick={save}>
-            Save
-          </button>
-        </div>
-      )}
+      <div className="save-bar">
+        <span className={dirty ? 'save-status save-status--dirty' : 'save-status'}>
+          {dirty ? `${changed.length} player${changed.length === 1 ? '' : 's'} changed – unsaved` : 'All changes saved'}
+        </span>
+        <button
+          className="ui-btn"
+          disabled={!dirty}
+          onClick={() => {
+            setDraft(structuredClone(entries))
+            setErrors({})
+          }}
+        >
+          Discard changes
+        </button>
+        <button className="ui-btn ui-btn--primary" disabled={!dirty} onClick={save}>
+          Save
+        </button>
+      </div>
 
       {dialog === 'add' && <AddPlayerDialog event={event} onClose={() => setDialog(null)} />}
       {dialog === 'import' && <ImportPlayersDialog event={event} setEvent={setEvent} onClose={() => setDialog(null)} />}

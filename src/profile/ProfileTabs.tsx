@@ -1,18 +1,10 @@
 import { format } from 'date-fns'
 import { Icon } from '../components/Icon'
 import { detailsOf, isDraft, isTournament } from '../data/eventDetails'
-import { dateRangeLabel, fmtDate, toDate } from '../data/events'
-import { standingOf } from '../events/pairings'
-import { fmtPoints } from '../events/results'
+import { dateRangeLabel, fmtDate } from '../data/events'
 import { useEventBook } from '../events/useEventBook'
 import { useBrand } from '../store/BrandStore'
 import type { CalEvent, EventEntry, Profile } from '../types'
-
-const ordinal = (n: number) => {
-  const s = ['th', 'st', 'nd', 'rd']
-  const v = n % 100
-  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`
-}
 
 /** Tournaments the user entered here (matched by their profile email). */
 function useMyTournaments(p: Profile): { event: CalEvent; entry: EventEntry }[] {
@@ -76,63 +68,5 @@ export function MyTournaments({ p }: { p: Profile }) {
         {past.length ? list(past) : <p className="muted">No past tournaments yet.</p>}
       </section>
     </>
-  )
-}
-
-export function MyResults({ p }: { p: Profile }) {
-  const { navigate } = useBrand()
-  const mine = useMyTournaments(p)
-  if (!p.email.trim()) return <NeedEmail />
-  const today = fmtDate(new Date())
-  // Finished tournaments, plus any that already have results.
-  const rows = mine.filter((m) => m.event.endDate < today || m.event.pairings?.length).sort((a, b) => b.event.startDate.localeCompare(a.event.startDate))
-  if (!rows.length) return <p className="muted pf-tab-empty">No results yet – they appear here after the tournaments you entered have finished.</p>
-
-  return (
-    <div className="pf-results">
-      <table className="ed-table">
-        <thead>
-          <tr>
-            <th>Tournament</th>
-            <th>Date</th>
-            <th>Place</th>
-            <th>Points</th>
-            <th>After</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ event, entry }) => {
-            const r = standingOf(event.pairings ?? [], entry.name)
-            return (
-              <tr key={event.id}>
-                <td>
-                  <a href={`#events/${event.id}`} onClick={(e) => (e.preventDefault(), navigate({ page: 'events', eventId: event.id, eventEdit: false }))}>
-                    {event.name}
-                  </a>
-                </td>
-                <td>{format(toDate(event.startDate), 'd MMM yyyy')}</td>
-                {r ? (
-                  <>
-                    <td>
-                      <strong>
-                        {r.tied ? '=' : ''}
-                        {ordinal(r.place)}
-                      </strong>{' '}
-                      <span className="muted">of {r.of}</span>
-                    </td>
-                    <td>{fmtPoints(r.points)}</td>
-                    <td>Round {r.after}</td>
-                  </>
-                ) : (
-                  <td colSpan={3} className="muted">
-                    {event.pairings?.length ? 'You’re not in the uploaded rounds yet' : 'Results not available yet'}
-                  </td>
-                )}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
   )
 }

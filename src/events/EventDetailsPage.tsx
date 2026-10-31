@@ -4,7 +4,7 @@ import { Modal, useDialogs } from '../components/Dialogs'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { Icon } from '../components/Icon'
 import {
-  detailsOf, entriesCloseAt, fideRatingFor, TIME_TYPES, isAuNzCitizen, isDraft, isTournament, mapsUrl, memberOn, missingSections, SECTIONS, sectionFilled, type SectionDef,
+  detailsOf, entriesCloseAt, TIME_TYPES, isAuNzCitizen, isDraft, isTournament, mapsUrl, memberOn, missingSections, SECTIONS, sectionFilled, type SectionDef,
 } from '../data/eventDetails'
 import { dateRangeLabel, fmtTime, timeLabel, toDate } from '../data/events'
 import { toHtml, toPlain } from '../lib/richtext'
@@ -15,7 +15,8 @@ import { apiPost } from '../lib/api'
 import { StatusBadge } from './EventsPage'
 import type { CalEvent, EventDetailsData, EventEntry } from '../types'
 import { EventForm } from './EventDialogs'
-import { byeFor, byeValues, fedCode, isReleased, scheduledRounds } from '../pairing/engine'
+import { fedCode } from '../data/countries'
+import { byeFor, byeValues, isReleased, scheduledRounds } from './byes'
 import { PairingsSection } from './PairingsSection'
 import { AddPlayerDialog, ImportPlayersDialog } from './PlayersDialogs'
 import { useEventBook } from './useEventBook'
@@ -135,8 +136,6 @@ function DetailsView({
   const [choosing, setChoosing] = useState(false)
   /** Organiser: add one player or import a players file. */
   const [players, setPlayers] = useState<'add' | 'import' | null>(null)
-  /** Once pairings are released, the entry list is frozen. */
-  const entriesLocked = (event.pairings ?? []).length > 0
   /** Withdrawing goes through the organiser – this window shows how to reach them. */
   const [withdrawing, setWithdrawing] = useState(false)
   const showEntries = !d.registrationUrl.trim()
@@ -144,7 +143,7 @@ function DetailsView({
   const sections = tournament ? SECTIONS.filter((s) => s.kind !== 'url' && sectionFilled(d, s)) : []
   const nav = [
     ...sections.map((s) => ({ id: s.id, label: s.label })),
-    ...(tournament ? [{ id: 'pairings', label: 'Pairings' }, { id: 'results', label: 'Results' }] : []),
+    ...(tournament ? [{ id: 'pairings', label: 'Pairings' }] : []),
     ...(showEntries ? [{ id: 'entries', label: 'View entries' }] : []),
   ]
 
@@ -303,8 +302,7 @@ function DetailsView({
               <SectionView s={s} d={d} roundAction={(n) => <ByeButton event={event} round={n} setEvent={setEvent} />} />
             </section>
           ))}
-          {tournament && <PairingsSection mode="pairings" event={event} you={profile.email} setEvent={setEvent} canEdit={can('events.uploadPairings', event)} />}
-          {tournament && <PairingsSection mode="results" event={event} you={profile.email} setEvent={setEvent} canEdit={can('events.uploadPairings', event)} />}
+          {tournament && <PairingsSection event={event} you={profile.email} setEvent={setEvent} canEdit={can('events.uploadPairings', event)} />}
         </div>
         {/* Right-hand column, stays in view while scrolling (below the sections on narrow screens). */}
         {showEntries && can('events.viewEntries') && (
@@ -314,10 +312,10 @@ function DetailsView({
                 <h2>View entries</h2>
                 {manage && (
                 <div className="ed-section-actions">
-                  <button className="ui-btn ui-btn--small" disabled={entriesLocked} title={entriesLocked ? 'Pairings released – entries are locked' : undefined} onClick={() => setPlayers('add')}>
+                  <button className="ui-btn ui-btn--small" onClick={() => setPlayers('add')}>
                     <Icon name="plus" size={14} /> Add
                   </button>
-                  <button className="ui-btn ui-btn--small" disabled={entriesLocked} title={entriesLocked ? 'Pairings released – entries are locked' : undefined} onClick={() => setPlayers('import')}>
+                  <button className="ui-btn ui-btn--small" onClick={() => setPlayers('import')}>
                     <Icon name="upload" size={14} /> Import
                   </button>
                 </div>
@@ -417,20 +415,6 @@ function SectionView({ s, d, roundAction }: { s: SectionDef; d: EventDetailsData
               ))}
           </tbody>
         </table>
-      )
-    case 'pairingSettings':
-      return (
-        <div className="ed-lines">
-          <span>
-            Bye for the odd player: <strong>{d.pabValue === '0.5' ? '½ point' : d.pabValue === '0' ? '0 points' : '1 point'}</strong>
-          </span>
-          <span>
-            Round 1 top seed plays: <strong>{d.topColour === 'black' ? 'Black' : d.topColour === 'white' ? 'White' : 'Random colour'}</strong>
-          </span>
-          <span>
-            Seeded by: <strong>{d.seedBy === 'acf' ? 'ACF rating' : `${fideRatingFor(d).label} rating`}</strong>
-          </span>
-        </div>
       )
     case 'venue':
       return (
@@ -746,37 +730,6 @@ function SectionEditor({ s, d, set }: { s: SectionDef; d: EventDetailsData; set:
             { key: 'ratingRange', label: 'Rating range', placeholder: 'Optional, e.g. Under 1600' },
           ]}
         />
-      )
-    case 'pairingSettings':
-      return (
-        <>
-          {row(
-            'Bye for the odd player',
-            <select className="ds-input" value={d.pabValue ?? ''} onChange={(e) => set('pabValue', e.target.value as EventDetailsData['pabValue'])}>
-              <option value="">Choose…</option>
-              <option value="1">1 point</option>
-              <option value="0.5">½ point</option>
-              <option value="0">0 points</option>
-            </select>,
-          )}
-          {row(
-            'Round 1 top seed plays',
-            <select className="ds-input" value={d.topColour ?? ''} onChange={(e) => set('topColour', e.target.value as EventDetailsData['topColour'])}>
-              <option value="">Choose…</option>
-              <option value="white">White</option>
-              <option value="black">Black</option>
-              <option value="random">Random</option>
-            </select>,
-          )}
-          {row(
-            'Seed by',
-            <select className="ds-input" value={d.seedBy ?? ''} onChange={(e) => set('seedBy', e.target.value as EventDetailsData['seedBy'])}>
-              <option value="">Choose…</option>
-              <option value="fide">FIDE rating ({fideRatingFor(d).label.replace('FIDE ', '')}, from the time control)</option>
-              <option value="acf">ACF rating</option>
-            </select>,
-          )}
-        </>
       )
     case 'datetime':
       return <input className="ds-input ed-datetime" type="datetime-local" value={d.entriesClose} onChange={(e) => set('entriesClose', e.target.value)} />

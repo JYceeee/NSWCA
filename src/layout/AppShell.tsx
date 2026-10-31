@@ -9,7 +9,7 @@ import { buildThemeVars } from '../lib/theme'
 import { EventsPage } from '../events/EventsPage'
 import { DocumentsPage } from '../admin/DocumentsPage'
 import { AllPlayersPage } from '../admin/AllPlayersPage'
-import { PairingsPage } from '../pairing/PairingsPage'
+import { ByesPage } from '../events/ByesPage'
 import { ProfilePage } from '../profile/ProfilePage'
 import { ApprovalsPage } from '../admin/ApprovalsPage'
 import { UsersPage } from '../admin/UsersPage'
@@ -166,7 +166,7 @@ export function AppShell() {
                 {ui.page === 'brand' && <BrandPage />}
                 {ui.page === 'menu' && <MenuPage />}
                 {ui.page === 'events' && <EventsPage />}
-                {ui.page === 'pairings' && <PairingsPage />}
+                {ui.page === 'byes' && <ByesPage />}
                 {ui.page === 'documents' && <DocumentsPage />}
                 {ui.page === 'players' && <AllPlayersPage />}
                 {ui.page === 'profile' && <ProfilePage />}

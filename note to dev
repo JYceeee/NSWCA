@@ -1,5 +1,6 @@
 # local deploy
 npm run dev
+npm run dev -- --port 227 --strictPort --open
 
 # Build the site
 

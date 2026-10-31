@@ -20,7 +20,7 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { id: 'home', label: 'Home', icon: 'grid', page: 'home' },
   { id: 'events', label: 'Upcoming events', icon: 'calendar', page: 'events' },
-  { id: 'pairings', label: 'Pairings', icon: 'swap', page: 'pairings' },
+  { id: 'byes', label: 'Byes', icon: 'clock', page: 'byes' },
   { id: 'players', label: 'All players', icon: 'users', page: 'players' },
   { id: 'contact', label: 'Contact Us', icon: 'mail', page: 'contact' },
   { id: 'profile', label: 'Profile', icon: 'user', page: 'profile' },
@@ -89,7 +89,7 @@ const t = (token: TokenKey, alpha = 100): ColorRef => ({ token, alpha })
 export const ROW_DEFS: Record<LookKind, RowDef[]> = {
   sidebar: [
     {
-      id: 'parent', name: 'Parent tabs', description: 'Upcoming events, Pairings, Profile, Admin', sample: 'Upcoming events',
+      id: 'parent', name: 'Parent tabs', description: 'Upcoming events, Byes, Profile, Admin', sample: 'Upcoming events',
       spacing: [{ key: 'gap', label: 'Space between tabs', max: 40 }, { key: 'padX', label: 'Side padding', max: 40 }, { key: 'padY', label: 'Top / bottom padding', max: 30 }],
       def: text('p1', { weight: 600, gap: 2, padX: 12, padY: 10 }),
     },

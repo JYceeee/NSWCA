@@ -1,7 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Modal, useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
-import { downloadPairingTemplate } from '../events/pairings'
 import { downloadPlayersTemplate, PLAYER_COLUMNS } from '../events/players'
 import { COLUMNS as EVENT_COLUMNS, downloadTemplate as downloadEventsTemplate } from '../events/spreadsheet'
 import { ROLE_LABEL, type MatrixRole } from '../data/permissions'
@@ -38,15 +37,6 @@ const DOCS: Doc[] = [
     usedIn: 'Upcoming events › Import / Export › Import events',
     columns: EVENT_COLUMNS,
     download: downloadEventsTemplate,
-  },
-  {
-    id: 'pairings',
-    name: 'Pairings template',
-    file: 'pairings-template.xlsx',
-    description: 'One round’s pairings, in the layout Vega and Swiss-Manager exports use.',
-    usedIn: 'Tournament page › Pairings › Upload round',
-    columns: ['Bo.', 'No.', 'Fed', 'Tit', 'White Player', 'Pts', 'Result', 'Pts', 'No.', 'Tit', 'Black Player', 'Fed'],
-    download: downloadPairingTemplate,
   },
 ]
 

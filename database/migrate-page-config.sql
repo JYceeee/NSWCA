@@ -1,4 +1,5 @@
 -- Principles: run ONCE on a database made before Page Config (Home, Contact Us, Enquiries, profile locks).
+-- The pairing_rounds, pairing_boards and event_byes tables stay: tournament pairings and byes still use them.
 -- Afterwards run seed.sql again: it adds the new Roles and permissions rows, keeping your existing ticks.
 -- A new database doesn't need this file: schema.sql already has these changes.
 SET NAMES utf8mb4;

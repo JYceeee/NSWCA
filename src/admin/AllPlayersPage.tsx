@@ -9,7 +9,7 @@ import { emptyProfile } from '../profile/ProfilePage'
 import { checkDraft, draftOf, PlayerFields, type PlayerDetails, type PlayerDraft } from '../events/PlayerFields'
 import { useEventBook } from '../events/useEventBook'
 import { uid, useBrand } from '../store/BrandStore'
-import type { CalEvent, EventBook, Player } from '../types'
+import type { EventBook, Player } from '../types'
 
 /** Passes a player's edits on to the profile when the player has an account. Returns true if the profile changed. */
 export function useProfileSync() {
@@ -35,7 +35,6 @@ export function usePlayers() {
 const enteredIn = (book: EventBook, id: string) =>
   book.events.flatMap((e) => (e.entries ?? []).filter((x) => x.playerId === id).map((x) => ({ event: e, entry: x })))
 
-const locked = (e: CalEvent) => (e.pairings ?? []).length > 0
 
 /** Admin › All players: every player's details in one place. */
 export function AllPlayersPage() {
@@ -60,7 +59,7 @@ export function AllPlayersPage() {
       return n
     })
 
-  /** Saves details; entries in tournaments that haven't started pairing get the new details too. */
+  /** Saves details; the player's tournament entries get the new details too. */
   const save = (details: PlayerDetails, id?: string) => {
     if (!id) {
       const p: Player = { ...details, id: uid('pl'), added: new Date().toISOString() }
@@ -75,7 +74,7 @@ export function AllPlayersPage() {
       ...b,
       players: (b.players ?? []).map((x) => (x.id === id ? p : x)),
       events: b.events.map((e) =>
-        locked(e) || !e.entries?.some((x) => x.playerId === id)
+        !e.entries?.some((x) => x.playerId === id)
           ? e
           : (n++, { ...e, entries: e.entries.map((x) => (x.playerId === id ? { ...x, ...entryFields(p) } : x)) }),
       ),
