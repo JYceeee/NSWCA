@@ -2,7 +2,7 @@ import { format, parseISO } from 'date-fns'
 import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Modal, useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
-import { ADMIN_ONLY_PERMS, defaultMatrix, MATRIX_ROLES, PERM_GROUPS, ROLE_LABEL, ROLE_SHORT, SCOPE_LABEL, type Grant, type Matrix, type PermRow, type Role, type Scope } from '../data/permissions'
+import { ADMIN_ONLY_PERMS, defaultMatrix, MATRIX_ROLES, PERM_GROUPS, ROLE_LABEL, SCOPE_LABEL, type Grant, type Matrix, type PermRow, type Role, type Scope } from '../data/permissions'
 import { apiGet, apiPost, apiUpload } from '../lib/api'
 import { listLocalAssets } from '../lib/db'
 import { ProfileScreen } from '../profile/ProfilePage'
@@ -445,7 +445,9 @@ function UserDialog({ id, edit, onSaved, onClose }: { id: number; edit: boolean;
                 </div>
               )}
             </section>
-            <ProfileScreen key={data.user.id + String(edit)} value={data.profile} fallbackEmail={data.user.email} onSave={(p) => save({ profile: p })} setDirty={() => {}} canEdit={edit} canJoin={edit && session.user?.role === 'admin'} canEditDates={session.user?.role === 'admin'} tabs={[]} />
+            <div className="profile-page">
+              <ProfileScreen key={data.user.id + String(edit)} value={data.profile} fallbackEmail={data.user.email} onSave={(p) => save({ profile: p })} setDirty={() => {}} canEdit={edit} canJoin={edit && session.user?.role === 'admin'} canEditDates={session.user?.role === 'admin'} tabs={[]} />
+            </div>
           </>
         )}
       </div>
@@ -469,6 +471,8 @@ interface LogRow {
 
 const ACTION_LABEL: Record<string, string> = {
   profile_edit: 'Profile edited',
+  email_edit: 'Template edited',
+  email_restore: 'Version restored',
   user_edit: 'Account edited',
   role_change: 'Role changed',
   disable: 'Disabled',
@@ -483,19 +487,21 @@ const ACTION_LABEL: Record<string, string> = {
 }
 
 /** Every change admins made: profiles field by field (before → after), roles, disable / enable, resets, approvals, permissions. */
-function LogDialog({ userId, name, onClose }: { userId?: number; name?: string; onClose: () => void }) {
+export function LogDialog({ userId, name, api = 'log', title, onClose }: { userId?: number; name?: string; api?: string; title?: string; onClose: () => void }) {
   const [rows, setRows] = useState<LogRow[] | null>(null)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   useEffect(() => {
-    apiPost<{ log: LogRow[] }>('log', userId ? { userId } : {})
+    apiPost<{ log: LogRow[] }>(api, userId ? { userId } : {})
       .then((r) => setRows(r.log))
       .catch((e) => setError(e.message))
-  }, [userId])
+  }, [api, userId])
+  // The Email templates log has no users in it.
+  const users = api === 'log'
   const q = query.trim().toLowerCase()
   const shown = (rows ?? []).filter((r) => !q || [r.actor, r.target, r.field, r.old, r.new, ACTION_LABEL[r.action]].some((v) => v?.toLowerCase().includes(q)))
   return (
-    <Modal title={name ? `Log · ${name}` : 'Log'} onClose={onClose} width={1000}>
+    <Modal title={title ?? (name ? `Log · ${name}` : 'Log')} onClose={onClose} width={1000}>
       <div className="modal-body">
         <div className="cal-search ap-search um-log-search">
           <Icon name="search" size={15} />
@@ -508,7 +514,7 @@ function LogDialog({ userId, name, onClose }: { userId?: number; name?: string; 
               <tr>
                 <th>When</th>
                 <th>By</th>
-                <th>User</th>
+                {users && <th>User</th>}
                 <th>Change</th>
                 <th>Field</th>
                 <th>Before</th>
@@ -520,7 +526,7 @@ function LogDialog({ userId, name, onClose }: { userId?: number; name?: string; 
                 <tr key={r.id}>
                   <td className="um-nowrap">{when(r.at)}</td>
                   <td>{r.actor}</td>
-                  <td>{r.target ?? <span className="muted">—</span>}</td>
+                  {users && <td>{r.target ?? <span className="muted">—</span>}</td>}
                   <td>{ACTION_LABEL[r.action] ?? r.action}</td>
                   <td>{r.field ?? <span className="muted">—</span>}</td>
                   <td className="um-old">{r.old || <span className="muted">—</span>}</td>
@@ -556,6 +562,9 @@ function LogDialog({ userId, name, onClose }: { userId?: number; name?: string; 
 
 // ---------- Roles and permissions ----------
 
+/** Columns, most access first. Admin comes before these and isn't stored. */
+const SHOWN_ROLES = [...MATRIX_ROLES].reverse()
+
 /** Permissions in rows (grouped by page), roles in columns. Simple rows: a tickbox. Scoped rows: tickbox + condition. */
 function PermissionsTab() {
   const { toast, confirm } = useDialogs()
@@ -579,7 +588,7 @@ function PermissionsTab() {
 
   const groups = useMemo(() => {
     const order = [...PERM_GROUPS, ...new Set((rows ?? []).map((r) => r.group))].filter((g, i, a) => a.indexOf(g) === i)
-    return order.map((g) => ({ name: g, rows: (rows ?? []).filter((r) => r.group === g) })).filter((g) => g.rows.length)
+    return order.sort((a, b) => a.localeCompare(b)).map((g) => ({ name: g, rows: (rows ?? []).filter((r) => r.group === g) })).filter((g) => g.rows.length)
   }, [rows])
 
   if (error) return <p className="acct-error">{error}</p>
@@ -629,12 +638,10 @@ function PermissionsTab() {
           <thead>
             <tr>
               <th className="um-perm-name">Permission / access</th>
-              {MATRIX_ROLES.map((r) => (
-                <th key={r} title={ROLE_LABEL[r]}>
-                  {ROLE_SHORT[r] === ROLE_LABEL[r] ? ROLE_LABEL[r] : `${ROLE_LABEL[r]} (${ROLE_SHORT[r]})`}
-                </th>
+              <th>Admin</th>
+              {SHOWN_ROLES.map((r) => (
+                <th key={r}>{ROLE_LABEL[r]}</th>
               ))}
-              <th title="Admin">Admin</th>
             </tr>
           </thead>
           <tbody>
@@ -652,7 +659,13 @@ function PermissionsTab() {
                   g.rows.map((row) => (
                     <tr key={row.key}>
                       <td className="um-perm-name">{row.label}</td>
-                      {MATRIX_ROLES.map((role) => {
+                      <td className="um-perm-cell um-perm-cell--locked">
+                        <div className="um-perm-ctl">
+                          <input type="checkbox" checked disabled aria-label={`Admin: ${g.name} › ${row.label} (always)`} />
+                          {row.scopes.length > 0 && <span className="muted small">All</span>}
+                        </div>
+                      </td>
+                      {SHOWN_ROLES.map((role) => {
                         const v = cell(role, row.key)
                         const label = `${ROLE_LABEL[role]}: ${g.name} › ${row.label}`
                         return (
@@ -672,12 +685,6 @@ function PermissionsTab() {
                           </td>
                         )
                       })}
-                      <td className="um-perm-cell um-perm-cell--locked">
-                        <div className="um-perm-ctl">
-                          <input type="checkbox" checked disabled aria-label={`Admin: ${g.name} › ${row.label} (always)`} />
-                          {row.scopes.length > 0 && <span className="muted small">All</span>}
-                        </div>
-                      </td>
                     </tr>
                   ))}
               </Fragment>

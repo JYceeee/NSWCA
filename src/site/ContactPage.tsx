@@ -39,7 +39,7 @@ export function ContactView({ contact, preview }: { contact: ContactConfig; prev
 
   return (
     <div className="hm ct">
-      <section className="hm-section" style={{ minHeight: sectionHeight(contact.height, preview) }}>
+      <section className="hm-section" style={{ minHeight: sectionHeight(contact.height) }}>
         <div className="hm-wrap ct-grid">
           <div>
             <h1>{contact.title}</h1>

@@ -16,12 +16,12 @@ export function PageBackdrop({ image }: { image: PageImage }) {
 }
 
 /** Title and intro of a page, on a banner when Page Config gives it an image. */
-export function PageHeadView({ head, title, intro, className, actions, preview }: { head: PageHeadConfig; title: string; intro?: ReactNode; className?: string; actions?: ReactNode; preview?: boolean }) {
+export function PageHeadView({ head, title, intro, className, actions }: { head: PageHeadConfig; title: string; intro?: ReactNode; className?: string; actions?: ReactNode }) {
   const banner = !!head.image.assetId
   const dark = banner && isDarkImage(head.image)
   const cls = ['page-head', className, banner && 'page-head--banner', dark && 'page-head--dark', head.height > 0 && 'page-head--tall'].filter(Boolean).join(' ')
   return (
-    <header className={cls} data-surface={banner ? (dark ? 'dark' : 'light') : undefined} style={{ minHeight: sectionHeight(head.height, preview) }}>
+    <header className={cls} data-surface={banner ? (dark ? 'dark' : 'light') : undefined} style={{ minHeight: sectionHeight(head.height) }}>
       {banner && <PageBackdrop image={head.image} />}
       <div>
         <h1>{head.title.trim() || title}</h1>

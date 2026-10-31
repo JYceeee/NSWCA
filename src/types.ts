@@ -161,7 +161,7 @@ export interface Profile {
 
 export type BrandTab = 'palette' | 'logos' | 'typography' | 'components'
 
-export type PageId = 'home' | 'contact' | 'brand' | 'menu' | 'pages' | 'documents' | 'players' | 'events' | 'byes' | 'profile' | 'users' | 'approvals' | 'enquiries'
+export type PageId = 'home' | 'contact' | 'brand' | 'menu' | 'pages' | 'documents' | 'players' | 'events' | 'byes' | 'profile' | 'users' | 'approvals' | 'enquiries' | 'emails'
 export type MenuTab = 'sidebar' | 'topbar' | 'footer'
 /** On light / on dark version of the top bar or footer. */
 export type BarVersion = 'light' | 'dark'
@@ -476,7 +476,7 @@ export interface PageHeadConfig {
   title: string
   intro: string
   image: PageImage
-  /** Minimum height, percent of the window. 0 = fit the content. */
+  /** Minimum height in px. 0 = fit the content. */
   height: number
 }
 
@@ -500,25 +500,85 @@ export interface ProjectItem extends GalleryItem {
   label: string
 }
 
-export interface HomeConfig {
-  hero: { enabled: boolean; title: string; text: string; image: PageImage; /** Percent of the window height. */ height: number; buttons: PageButton[] }
-  gallery: { enabled: boolean; title: string; text: string; /** Like PageHeadConfig.height. */ height: number; items: GalleryItem[] }
-  emphasis: { enabled: boolean; title: string; image: PageImage; height: number; items: EmphasisItem[]; button: PageButton }
-  projects: {
-    enabled: boolean
-    title: string
-    height: number
-    /** px the sliding panel stops from the image's left edge. */
-    inset: number
-    /** px around the text inside the panel. */
-    padding: number
-    items: ProjectItem[]
-  }
+/** Shared by every section. */
+interface SectionBase {
+  id: string
+  /** "Show section": off hides it without losing it. */
+  enabled: boolean
+  /** px above the title / below the last element. null = the section's standard spacing. */
+  spaceTop: number | null
+  spaceBottom: number | null
 }
+
+export interface HeroSection extends SectionBase {
+  kind: 'hero'
+  title: string
+  text: string
+  image: PageImage
+  /** Fills the window; off = `height`. */
+  fullWindow: boolean
+  /** Like PageHeadConfig.height. */
+  height: number
+  buttons: PageButton[]
+}
+
+export interface GallerySection extends SectionBase {
+  kind: 'gallery'
+  title: string
+  text: string
+  height: number
+  items: GalleryItem[]
+}
+
+export interface EmphasisSection extends SectionBase {
+  kind: 'emphasis'
+  title: string
+  image: PageImage
+  height: number
+  items: EmphasisItem[]
+  button: PageButton
+}
+
+export interface ProjectsSection extends SectionBase {
+  kind: 'projects'
+  title: string
+  height: number
+  /** px the sliding panel stops from the image's left edge. */
+  inset: number
+  /** px around the text inside the panel. */
+  padding: number
+  items: ProjectItem[]
+}
+
+export type ListCell =
+  | { kind: 'empty' }
+  | { kind: 'text'; text: string; link: PageLink }
+  /** width / height in px. One alone keeps the proportions, both crop to that shape, neither fills the column. */
+  | { kind: 'image'; assetId: string | null; fileName: string | null; width: number | null; height: number | null }
+
+export interface ListColumn {
+  id: string
+  title: string
+  cells: ListCell[]
+}
+
+export interface ListSection extends SectionBase {
+  kind: 'list'
+  title: string
+  showTitle: boolean
+  /** Optional background; no image = the plain page background. */
+  image: PageImage
+  height: number
+  columns: ListColumn[]
+}
+
+export type Section = HeroSection | GallerySection | EmphasisSection | ProjectsSection | ListSection
+export type SectionKind = Section['kind']
 
 export interface ContactConfig {
   title: string
   text: string
+  /** Like PageHeadConfig.height. */
   height: number
   /** Address, email, phone: one per line. */
   details: string
@@ -528,8 +588,6 @@ export interface ContactConfig {
   thanks: string
   /** Staff address enquiries go to ('' = none). Only sent to people who can edit Page Config. */
   notifyEmail: string
-  /** Emailed to the sender. Only sent to people who can edit Page Config. */
-  autoReply: string
 }
 
 export interface PageConfig {
@@ -537,7 +595,9 @@ export interface PageConfig {
   name: string
   builtin: boolean
   heads: Record<PageId, PageHeadConfig>
-  home: HomeConfig
+  /** Pages ticked "Add section". Unticked pages keep their sections but don't show them. */
+  sectionPages: PageId[]
+  sections: Partial<Record<PageId, Section[]>>
   contact: ContactConfig
   /** Profile field -> members can change it after their first save. */
   profileFields: Record<string, boolean>

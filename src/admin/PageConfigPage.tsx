@@ -1,20 +1,25 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { SaveBar, useAssetUrl } from '../brand/shared'
 import { NumberField } from '../brand/TypographyTab'
 import { useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
 import { calView } from '../data/events'
 import { PAGES } from '../data/menus'
-import { isDarkImage, measureLuminance, newButton, PROFILE_FIELD_GROUPS } from '../data/pages'
+import { isDarkImage, LANDING_PAGES, measureLuminance, newButton, newListCell, newListColumn, newSection, pageSections, PROFILE_FIELD_GROUPS, SECTION_KINDS, SECTION_PAGES } from '../data/pages'
 import { putAsset } from '../lib/db'
 import { saveSiteDefaults } from '../lib/saveDefaults'
+import { CellFrame, ColumnMove, Stepper } from '../menu/FooterGridEditor'
 import { ContactView } from '../site/ContactPage'
-import { HomeView } from '../site/HomePage'
+import { SectionsView } from '../site/HomePage'
 import { PageHead, PageHeadView } from '../site/PageHead'
 import { referencedAssets, uid, useBrand, useSession } from '../store/BrandStore'
-import type { CalMode, GalleryItem, PageButton, PageConfig, PageId, PageImage, PageLink, Tone } from '../types'
+import type { CalMode, EmphasisSection, GalleryItem, GallerySection, HeroSection, ListCell, ListColumn, ListSection, PageButton, PageConfig, PageId, PageImage, PageLink, ProjectsSection, Section, SectionKind, Tone } from '../types'
 
 const MAX_IMAGE = 15 * 1024 * 1024
+const MAX_HEIGHT = 3000
+const MAX_SPACE = 600
+const MAX_LIST_COLS = 6
+const MAX_LIST_ROWS = 12
 
 async function uploadImage(file: File): Promise<{ assetId: string; fileName: string; luminance: number | null }> {
   if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') throw new Error('Please choose a JPG, PNG or WebP image')
@@ -50,10 +55,10 @@ export function PageConfigPage() {
       <div className="pc-layout">
         <fieldset className="pc-form" disabled={disabled}>
           <HeadForm key={page} page={page} cfg={cfg} set={set} />
-          {page === 'home' && <HomeForm cfg={cfg} set={set} />}
           {page === 'contact' && <ContactForm cfg={cfg} set={set} />}
           {page === 'events' && <CalendarForm cfg={cfg} set={set} />}
           {page === 'profile' && <ProfileForm cfg={cfg} set={set} />}
+          {cfg.sectionPages.includes(page) && <SectionsForm page={page} cfg={cfg} set={set} />}
         </fieldset>
         <Preview page={page} cfg={cfg} />
       </div>
@@ -117,16 +122,17 @@ function Preview({ page, cfg }: { page: PageId; cfg: PageConfig }) {
       <span className="section-title">Preview</span>
       <div className="pc-preview-box" ref={box} style={{ height: height * scale }}>
         <div className="pc-preview-inner" ref={inner} style={{ width: DESIGN_WIDTH, transform: `scale(${scale})` }}>
-          {page === 'home' ? (
-            <HomeView home={cfg.home} preview />
-          ) : page === 'contact' ? (
+          {page === 'contact' ? (
             <ContactView contact={cfg.contact} preview />
           ) : (
-            <div className="brand-page">
-              <PageHeadView head={cfg.heads[page]} title={label} intro="This page’s own introduction shows here unless you write one." preview />
-              <div className="pc-preview-rest">Page content</div>
-            </div>
+            page !== 'home' && (
+              <div className="brand-page">
+                <PageHeadView head={cfg.heads[page]} title={label} intro="This page’s own introduction shows here unless you write one." />
+                <div className="pc-preview-rest">Page content</div>
+              </div>
+            )
           )}
+          <SectionsView sections={pageSections(cfg, page)} preview />
         </div>
       </div>
     </aside>
@@ -135,16 +141,19 @@ function Preview({ page, cfg }: { page: PageId; cfg: PageConfig }) {
 
 // ---------- Form parts ----------
 
-function Group({ title, children, on, onToggle }: { title: string; children: ReactNode; on?: boolean; onToggle?: (v: boolean) => void }) {
+function Group({ title, children, on, onToggle, actions }: { title: string; children: ReactNode; on?: boolean; onToggle?: (v: boolean) => void; actions?: ReactNode }) {
   return (
     <section className="pc-group">
       <div className="pc-group-head">
         <h3>{title}</h3>
-        {onToggle && (
-          <label className="check">
-            <input type="checkbox" checked={on} onChange={(e) => onToggle(e.target.checked)} /> Show section
-          </label>
-        )}
+        <div className="pc-group-actions">
+          {actions}
+          {onToggle && (
+            <label className="check">
+              <input type="checkbox" checked={on} onChange={(e) => onToggle(e.target.checked)} /> Show section
+            </label>
+          )}
+        </div>
       </div>
       {(on ?? true) && children}
     </section>
@@ -161,12 +170,17 @@ function Text({ label, value, onChange, rows, type, hint }: { label: string; val
   )
 }
 
-function Num({ label, value, min, max, onChange, unit = 'px', hint }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void; unit?: string; hint?: string }) {
+function Num({ label, value, min, max, onChange, unit, hint }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void; unit?: string; hint?: string }) {
+  return <OptionalNum label={label} value={value} min={min} max={max} unit={unit} hint={hint} onChange={(n) => n != null && onChange(n)} />
+}
+
+/** With `blank`, the field can be left empty, and shows that word. */
+function OptionalNum({ label, value, min, max, onChange, unit = 'px', hint, blank }: { label: string; value: number | null; min: number; max: number; onChange: (n: number | null) => void; unit?: string; hint?: string; blank?: string }) {
   return (
     <div className="pc-field">
       <span>{label}</span>
       <div className="pc-num">
-        <NumberField value={value} min={min} max={max} onChange={(n) => n != null && onChange(n)} ariaLabel={label} small /> {unit}
+        <NumberField value={value} min={min} max={max} onChange={onChange} allowEmpty={blank != null} placeholder={blank} ariaLabel={label} small /> {unit}
       </div>
       {hint && <small className="muted">{hint}</small>}
     </div>
@@ -175,7 +189,18 @@ function Num({ label, value, min, max, onChange, unit = 'px', hint }: { label: s
 
 /** A section's minimum height; content taller than this makes the section grow. */
 function Height({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-  return <Num label="Height" unit="% of the window" value={value} min={0} max={100} onChange={onChange} hint="Minimum height. 0 = fit the content." />
+  return <Num label="Height" value={value} min={0} max={MAX_HEIGHT} onChange={onChange} hint="Minimum height. 0 = fit the content." />
+}
+
+/** Space above the title and below the last element. */
+function Spacing({ section, patch }: { section: Section; patch: (p: Pick<Section, 'spaceTop' | 'spaceBottom'>) => void }) {
+  const { spaceTop, spaceBottom } = section
+  return (
+    <div className="pc-row">
+      <OptionalNum label="Space above title" value={spaceTop} min={0} max={MAX_SPACE} blank="Auto" hint="Empty = standard spacing" onChange={(n) => patch({ spaceTop: n, spaceBottom })} />
+      <OptionalNum label="Space below last element" value={spaceBottom} min={0} max={MAX_SPACE} blank="Auto" hint="Empty = standard spacing" onChange={(n) => patch({ spaceTop, spaceBottom: n })} />
+    </div>
+  )
 }
 
 function ImagePick({ label, assetId, fileName, onFile, onClear }: { label: string; assetId: string | null; fileName: string | null; onFile: (f: File) => void; onClear: () => void }) {
@@ -255,16 +280,14 @@ function BackgroundPick({ label, image, onChange }: { label: string; image: Page
   )
 }
 
-function ButtonEdit({ button, onChange, title = 'Button text' }: { button: PageButton; onChange: (b: PageButton) => void; title?: string }) {
-  const { link } = button
-  const kind = (k: PageLink['kind']) => onChange({ ...button, link: k === 'none' ? { kind: k } : k === 'page' ? { kind: k, page: 'home' } : { kind: k, url: '' } })
+function LinkEdit({ link, onChange, noneLabel }: { link: PageLink; onChange: (l: PageLink) => void; noneLabel: string }) {
+  const kind = (k: PageLink['kind']) => onChange(k === 'none' ? { kind: k } : k === 'page' ? { kind: k, page: 'home' } : { kind: k, url: '' })
   return (
-    <div className="pc-row pc-row--btn">
-      <Text label={title} value={button.label} onChange={(label) => onChange({ ...button, label })} />
+    <>
       <label className="pc-field">
         <span>Goes to</span>
         <select className="ui-input" value={link.kind} onChange={(e) => kind(e.target.value as PageLink['kind'])}>
-          <option value="none">Nothing (hidden)</option>
+          <option value="none">{noneLabel}</option>
           <option value="page">A page</option>
           <option value="url">A web address</option>
         </select>
@@ -272,7 +295,7 @@ function ButtonEdit({ button, onChange, title = 'Button text' }: { button: PageB
       {link.kind === 'page' && (
         <label className="pc-field">
           <span>Page</span>
-          <select className="ui-input" value={link.page} onChange={(e) => onChange({ ...button, link: { kind: 'page', page: e.target.value as PageId } })}>
+          <select className="ui-input" value={link.page} onChange={(e) => onChange({ kind: 'page', page: e.target.value as PageId })}>
             {PAGES.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
@@ -281,7 +304,16 @@ function ButtonEdit({ button, onChange, title = 'Button text' }: { button: PageB
           </select>
         </label>
       )}
-      {link.kind === 'url' && <Text label="Web address" value={link.url} onChange={(url) => onChange({ ...button, link: { kind: 'url', url } })} />}
+      {link.kind === 'url' && <Text label="Web address" value={link.url} onChange={(url) => onChange({ kind: 'url', url })} />}
+    </>
+  )
+}
+
+function ButtonEdit({ button, onChange, title = 'Button text' }: { button: PageButton; onChange: (b: PageButton) => void; title?: string }) {
+  return (
+    <div className="pc-row pc-row--btn">
+      <Text label={title} value={button.label} onChange={(label) => onChange({ ...button, label })} />
+      <LinkEdit link={button.link} noneLabel="Nothing (hidden)" onChange={(link) => onChange({ ...button, link })} />
     </div>
   )
 }
@@ -343,9 +375,15 @@ function HeadForm({ page, cfg, set }: FormProps & { page: PageId }) {
   const patch = (p: Partial<typeof head>) => set((c) => ({ ...c, heads: { ...c.heads, [page]: { ...c.heads[page], ...p } } }))
   const label = PAGES.find((x) => x.id === page)?.label ?? page
   const content = page === 'home' || page === 'contact'
+  const tick = (on: boolean) => set((c) => ({ ...c, sectionPages: on ? [...c.sectionPages, page] : c.sectionPages.filter((p) => p !== page) }))
   return (
     <Group title="Page">
       <Text label="Menu label" value={head.menuLabel} onChange={(menuLabel) => patch({ menuLabel })} hint={`Shown in the menus. Empty = ${label}`} />
+      {SECTION_PAGES.includes(page) && (
+        <label className="check">
+          <input type="checkbox" checked={cfg.sectionPages.includes(page)} onChange={(e) => tick(e.target.checked)} /> Add section
+        </label>
+      )}
       {!content && (
         <>
           <Text label="Page title" value={head.title} onChange={(title) => patch({ title })} hint="Empty = the page’s standard title" />
@@ -358,12 +396,77 @@ function HeadForm({ page, cfg, set }: FormProps & { page: PageId }) {
   )
 }
 
-function HomeForm({ cfg, set }: FormProps) {
+const kindLabel = (k: SectionKind) => SECTION_KINDS.find((x) => x.kind === k)?.label ?? k
+
+/** The page's sections in order. A Landing always stays first. */
+function SectionsForm({ page, cfg, set }: FormProps & { page: PageId }) {
+  const { confirm } = useDialogs()
+  const sections = cfg.sections[page] ?? []
+  const write = (next: Section[]) => set((c) => ({ ...c, sections: { ...c.sections, [page]: next } }))
+  const first = sections[0]?.kind === 'hero' ? 1 : 0
+  const move = (i: number, by: -1 | 1) => {
+    const next = [...sections]
+    ;[next[i], next[i + by]] = [next[i + by], next[i]]
+    write(next)
+  }
+  const remove = async (s: Section) => {
+    const ok = await confirm({ title: `Delete this ${kindLabel(s.kind)} section?`, message: 'To keep it for later, untick Show section instead.', confirmLabel: 'Delete' })
+    if (ok) write(sections.filter((x) => x.id !== s.id))
+  }
+  const add = (kind: SectionKind) => write(kind === 'hero' ? [newSection(kind), ...sections] : [...sections, newSection(kind)])
+  const kinds = SECTION_KINDS.filter((k) => k.kind !== 'hero' || (LANDING_PAGES.includes(page) && !first))
+  return (
+    <>
+      {sections.map((s, i) => {
+        const patch = (p: Partial<Section>) => write(sections.map((x) => (x.id === s.id ? ({ ...x, ...p } as Section) : x)))
+        return (
+          <Group
+            key={s.id}
+            title={`${i + 1}. ${kindLabel(s.kind)}`}
+            on={s.enabled}
+            onToggle={(enabled) => patch({ enabled })}
+            actions={
+              <>
+                <button type="button" className="icon-btn" aria-label="Move section up" title="Move up" disabled={i <= first} onClick={() => move(i, -1)}>
+                  <span className="pc-up"><Icon name="chevronDown" size={14} /></span>
+                </button>
+                <button type="button" className="icon-btn" aria-label="Move section down" title="Move down" disabled={i < first || i === sections.length - 1} onClick={() => move(i, 1)}>
+                  <Icon name="chevronDown" size={14} />
+                </button>
+                <button type="button" className="icon-btn" aria-label="Delete section" title="Delete section" onClick={() => remove(s)}>
+                  <Icon name="trash" size={14} />
+                </button>
+              </>
+            }
+          >
+            {s.kind === 'hero' && <HeroForm s={s} patch={patch} />}
+            {s.kind === 'gallery' && <GalleryForm s={s} patch={patch} />}
+            {s.kind === 'emphasis' && <EmphasisForm s={s} patch={patch} />}
+            {s.kind === 'projects' && <ProjectsForm s={s} patch={patch} />}
+            {s.kind === 'list' && <ListForm s={s} patch={patch} />}
+          </Group>
+        )
+      })}
+      <label className="pc-field">
+        <span>Add section</span>
+        <select className="ui-input" value="" onChange={(e) => e.target.value && add(e.target.value as SectionKind)}>
+          <option value="">Choose a section type…</option>
+          {kinds.map((k) => (
+            <option key={k.kind} value={k.kind}>
+              {k.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </>
+  )
+}
+
+type SectionFormProps<T extends Section> = { s: T; patch: (p: Partial<T>) => void }
+
+function Picture<T extends GalleryItem>({ item, patch }: { item: T; patch: (p: Partial<T>) => void }) {
   const upload = useUpload()
-  const { home } = cfg
-  const part = <K extends keyof typeof home>(k: K, p: Partial<(typeof home)[K]>) => set((c) => ({ ...c, home: { ...c.home, [k]: { ...c.home[k], ...p } } }))
-  const { hero, gallery, emphasis, projects } = home
-  const picture = <T extends GalleryItem>(item: T, patch: (p: Partial<T>) => void) => (
+  return (
     <ImagePick
       label="Image"
       assetId={item.assetId}
@@ -372,82 +475,257 @@ function HomeForm({ cfg, set }: FormProps) {
       onClear={() => patch({ assetId: null, fileName: null } as Partial<T>)}
     />
   )
+}
+
+function HeroForm({ s, patch }: SectionFormProps<HeroSection>) {
   return (
     <>
-      <Group title="1. Landing" on={hero.enabled} onToggle={(enabled) => part('hero', { enabled })}>
-        <Text label="Heading" rows={2} value={hero.title} onChange={(title) => part('hero', { title })} />
-        <Text label="Text" rows={3} value={hero.text} onChange={(text) => part('hero', { text })} />
-        <BackgroundPick label="Background image" image={hero.image} onChange={(p) => part('hero', { image: { ...hero.image, ...p } })} />
-        <Num label="Height" unit="% of the window" value={hero.height} min={40} max={100} onChange={(height) => part('hero', { height })} />
-        <ItemList items={hero.buttons} onChange={(buttons) => part('hero', { buttons })} make={() => newButton()} name="Button" title={(b) => b.label}>
-          {(b, patch) => <ButtonEdit button={b} onChange={(n) => patch(n)} />}
-        </ItemList>
-      </Group>
-
-      <Group title="2. Gallery" on={gallery.enabled} onToggle={(enabled) => part('gallery', { enabled })}>
-        <Text label="Heading" value={gallery.title} onChange={(title) => part('gallery', { title })} />
-        <Text label="Text" rows={2} value={gallery.text} onChange={(text) => part('gallery', { text })} />
-        <Height value={gallery.height} onChange={(height) => part('gallery', { height })} />
-        <ItemList
-          items={gallery.items}
-          onChange={(items) => part('gallery', { items })}
-          make={() => ({ id: uid('gal'), title: '', text: '', assetId: null, fileName: null, button: newButton('View details') })}
-          name="Card"
-          title={(i) => i.title}
-        >
-          {(item, patch) => (
-            <>
-              {picture(item, patch)}
-              <Text label="Title" value={item.title} onChange={(title) => patch({ title })} />
-              <Text label="Description" rows={3} value={item.text} onChange={(text) => patch({ text })} />
-              <ButtonEdit button={item.button} onChange={(button) => patch({ button })} />
-            </>
-          )}
-        </ItemList>
-      </Group>
-
-      <Group title="3. Emphasis" on={emphasis.enabled} onToggle={(enabled) => part('emphasis', { enabled })}>
-        <Text label="Heading" value={emphasis.title} onChange={(title) => part('emphasis', { title })} />
-        <BackgroundPick label="Background image" image={emphasis.image} onChange={(p) => part('emphasis', { image: { ...emphasis.image, ...p } })} />
-        <Height value={emphasis.height} onChange={(height) => part('emphasis', { height })} />
-        <ItemList items={emphasis.items} onChange={(items) => part('emphasis', { items })} make={() => ({ id: uid('emp'), title: '', text: '' })} name="Point" title={(i) => i.title}>
-          {(item, patch) => (
-            <>
-              <Text label="Title" value={item.title} onChange={(title) => patch({ title })} />
-              <Text label="Description" rows={3} value={item.text} onChange={(text) => patch({ text })} />
-            </>
-          )}
-        </ItemList>
-        <ButtonEdit button={emphasis.button} onChange={(button) => part('emphasis', { button })} />
-      </Group>
-
-      <Group title="4. Project gallery" on={projects.enabled} onToggle={(enabled) => part('projects', { enabled })}>
-        <Text label="Heading" value={projects.title} onChange={(title) => part('projects', { title })} />
-        <Height value={projects.height} onChange={(height) => part('projects', { height })} />
-        <div className="pc-row">
-          <Num label="Text area margin from image" value={projects.inset} min={0} max={400} onChange={(inset) => part('projects', { inset })} hint="Where the sliding panel stops, from the image’s left edge. 0 covers the whole image." />
-          <Num label="Padding around the text" value={projects.padding} min={0} max={120} onChange={(padding) => part('projects', { padding })} hint="Space between the panel’s edges and its text." />
-        </div>
-        <ItemList
-          items={projects.items}
-          onChange={(items) => part('projects', { items })}
-          make={() => ({ id: uid('prj'), label: '', title: '', text: '', assetId: null, fileName: null, button: newButton('View details') })}
-          name="Project"
-          title={(i) => i.title}
-        >
-          {(item, patch) => (
-            <>
-              {picture(item, patch)}
-              <Text label="Small label" value={item.label} onChange={(label) => patch({ label })} />
-              <Text label="Title" value={item.title} onChange={(title) => patch({ title })} />
-              <Text label="Description" rows={3} value={item.text} onChange={(text) => patch({ text })} />
-              <ButtonEdit button={item.button} onChange={(button) => patch({ button })} />
-            </>
-          )}
-        </ItemList>
-      </Group>
+      <Text label="Heading" rows={2} value={s.title} onChange={(title) => patch({ title })} />
+      <Text label="Text" rows={3} value={s.text} onChange={(text) => patch({ text })} />
+      <BackgroundPick label="Background image" image={s.image} onChange={(p) => patch({ image: { ...s.image, ...p } })} />
+      <label className="check">
+        <input type="checkbox" checked={s.fullWindow} onChange={(e) => patch({ fullWindow: e.target.checked })} /> Full window
+      </label>
+      {!s.fullWindow && <Height value={s.height} onChange={(height) => patch({ height })} />}
+      <Spacing section={s} patch={patch} />
+      <ItemList items={s.buttons} onChange={(buttons) => patch({ buttons })} make={() => newButton()} name="Button" title={(b) => b.label}>
+        {(b, edit) => <ButtonEdit button={b} onChange={(n) => edit(n)} />}
+      </ItemList>
     </>
   )
+}
+
+function GalleryForm({ s, patch }: SectionFormProps<GallerySection>) {
+  return (
+    <>
+      <Text label="Heading" value={s.title} onChange={(title) => patch({ title })} />
+      <Text label="Text" rows={2} value={s.text} onChange={(text) => patch({ text })} />
+      <Height value={s.height} onChange={(height) => patch({ height })} />
+      <Spacing section={s} patch={patch} />
+      <ItemList
+        items={s.items}
+        onChange={(items) => patch({ items })}
+        make={() => ({ id: uid('gal'), title: '', text: '', assetId: null, fileName: null, button: newButton('View details') })}
+        name="Card"
+        title={(i) => i.title}
+      >
+        {(item, edit) => (
+          <>
+            <Picture item={item} patch={edit} />
+            <Text label="Title" value={item.title} onChange={(title) => edit({ title })} />
+            <Text label="Description" rows={3} value={item.text} onChange={(text) => edit({ text })} />
+            <ButtonEdit button={item.button} onChange={(button) => edit({ button })} />
+          </>
+        )}
+      </ItemList>
+    </>
+  )
+}
+
+function EmphasisForm({ s, patch }: SectionFormProps<EmphasisSection>) {
+  return (
+    <>
+      <Text label="Heading" value={s.title} onChange={(title) => patch({ title })} />
+      <BackgroundPick label="Background image" image={s.image} onChange={(p) => patch({ image: { ...s.image, ...p } })} />
+      <Height value={s.height} onChange={(height) => patch({ height })} />
+      <Spacing section={s} patch={patch} />
+      <ItemList items={s.items} onChange={(items) => patch({ items })} make={() => ({ id: uid('emp'), title: '', text: '' })} name="Point" title={(i) => i.title}>
+        {(item, edit) => (
+          <>
+            <Text label="Title" value={item.title} onChange={(title) => edit({ title })} />
+            <Text label="Description" rows={3} value={item.text} onChange={(text) => edit({ text })} />
+          </>
+        )}
+      </ItemList>
+      <ButtonEdit button={s.button} onChange={(button) => patch({ button })} />
+    </>
+  )
+}
+
+function ProjectsForm({ s, patch }: SectionFormProps<ProjectsSection>) {
+  return (
+    <>
+      <Text label="Heading" value={s.title} onChange={(title) => patch({ title })} />
+      <Height value={s.height} onChange={(height) => patch({ height })} />
+      <Spacing section={s} patch={patch} />
+      <div className="pc-row">
+        <Num label="Text area margin from image" value={s.inset} min={0} max={400} onChange={(inset) => patch({ inset })} hint="Where the sliding panel stops, from the image’s left edge. 0 covers the whole image." />
+        <Num label="Padding around the text" value={s.padding} min={0} max={120} onChange={(padding) => patch({ padding })} hint="Space between the panel’s edges and its text." />
+      </div>
+      <ItemList
+        items={s.items}
+        onChange={(items) => patch({ items })}
+        make={() => ({ id: uid('prj'), label: '', title: '', text: '', assetId: null, fileName: null, button: newButton('View details') })}
+        name="Project"
+        title={(i) => i.title}
+      >
+        {(item, edit) => (
+          <>
+            <Picture item={item} patch={edit} />
+            <Text label="Small label" value={item.label} onChange={(label) => edit({ label })} />
+            <Text label="Title" value={item.title} onChange={(title) => edit({ title })} />
+            <Text label="Description" rows={3} value={item.text} onChange={(text) => edit({ text })} />
+            <ButtonEdit button={item.button} onChange={(button) => edit({ button })} />
+          </>
+        )}
+      </ItemList>
+    </>
+  )
+}
+
+function ListForm({ s, patch }: SectionFormProps<ListSection>) {
+  return (
+    <>
+      <Text label="Heading" value={s.title} onChange={(title) => patch({ title })} />
+      <label className="check">
+        <input type="checkbox" checked={s.showTitle} onChange={(e) => patch({ showTitle: e.target.checked })} /> Show heading
+      </label>
+      <BackgroundPick label="Background image" image={s.image} onChange={(p) => patch({ image: { ...s.image, ...p } })} />
+      <Height value={s.height} onChange={(height) => patch({ height })} />
+      <Spacing section={s} patch={patch} />
+      <ListGrid columns={s.columns} onChange={(columns) => patch({ columns })} />
+    </>
+  )
+}
+
+const emptyCell = (): ListCell => ({ kind: 'empty' })
+
+const LIST_ELEMENTS = [
+  { kind: 'text', label: 'Text / link', icon: 'link' },
+  { kind: 'image', label: 'Image', icon: 'image' },
+] as const
+
+type ListDrag = { from: 'palette'; kind: 'text' | 'image' } | { from: 'cell'; col: number; row: number }
+
+/** Columns × rows, as in the footer: drag elements into cells, and cells onto each other to swap them. */
+function ListGrid({ columns, onChange }: { columns: ListColumn[]; onChange: (c: ListColumn[]) => void }) {
+  const [drag, setDrag] = useState<ListDrag | null>(null)
+  const [over, setOver] = useState<string | null>(null)
+  const edit = (fn: (next: ListColumn[]) => void) => {
+    const next = columns.map((c) => ({ ...c, cells: [...c.cells] }))
+    fn(next)
+    onChange(next)
+  }
+  const drop = (col: number, row: number) => {
+    setOver(null)
+    if (!drag) return
+    edit((next) => {
+      if (drag.from === 'palette') next[col].cells[row] = newListCell(drag.kind)
+      else [next[drag.col].cells[drag.row], next[col].cells[row]] = [next[col].cells[row], next[drag.col].cells[drag.row]]
+    })
+    setDrag(null)
+  }
+  const setColCount = (n: number) => onChange(n > columns.length ? [...columns, newListColumn()] : columns.slice(0, n))
+  const setRowCount = (ci: number, n: number) =>
+    edit((next) => {
+      const { cells } = next[ci]
+      next[ci].cells = n > cells.length ? [...cells, emptyCell()] : cells.slice(0, n)
+    })
+  const moveCol = (ci: number, by: -1 | 1) => {
+    const next = [...columns]
+    ;[next[ci], next[ci + by]] = [next[ci + by], next[ci]]
+    onChange(next)
+  }
+  return (
+    <div className="pc-items">
+      <div className="fg-toolbar">
+        <Stepper label="Columns" value={columns.length} min={1} max={MAX_LIST_COLS} onChange={setColCount} />
+      </div>
+      <span className="muted small">Drag elements into the cells. Drag a filled cell onto another to swap them.</span>
+      <div className="fg-palette">
+        {LIST_ELEMENTS.map((k) => (
+          <span
+            key={k.kind}
+            draggable
+            className="fg-chip"
+            title="Drag into a cell"
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = 'copyMove'
+              e.dataTransfer.setData('text/plain', k.kind)
+              setDrag({ from: 'palette', kind: k.kind })
+            }}
+            onDragEnd={() => setDrag(null)}
+          >
+            <Icon name="grip" size={14} stroke={3} /> <Icon name={k.icon} size={14} /> {k.label}
+          </span>
+        ))}
+      </div>
+      <div className="fg-grid" style={{ '--cols': columns.length } as CSSProperties}>
+        {columns.map((col, ci) => (
+          <div key={col.id} className="fg-col">
+            <div className="fg-col-head">
+              <span className="col-head">
+                <strong>Column {ci + 1}</strong>
+                <ColumnMove label={`column ${ci + 1}`} first={ci === 0} last={ci === columns.length - 1} onMove={(by) => moveCol(ci, by)} />
+              </span>
+              <Stepper label="Rows" value={col.cells.length} min={1} max={MAX_LIST_ROWS} onChange={(n) => setRowCount(ci, n)} small />
+              {columns.length > 1 && (
+                <button type="button" className="icon-btn icon-btn--danger" title="Remove column" onClick={() => onChange(columns.filter((c) => c.id !== col.id))}>
+                  <Icon name="trash" size={14} />
+                </button>
+              )}
+            </div>
+            <input className="ui-input fg-col-title" placeholder="Column title (optional)" value={col.title} onChange={(e) => edit((next) => void (next[ci].title = e.target.value))} aria-label={`Column ${ci + 1} title`} />
+            {col.cells.map((cell, ri) => {
+              const key = `${ci}-${ri}`
+              const change = (c: ListCell) => edit((next) => void (next[ci].cells[ri] = c))
+              return (
+                <CellFrame
+                  key={key}
+                  filled={cell.kind !== 'empty'}
+                  kind={cell.kind}
+                  over={over === key}
+                  dragging={drag?.from === 'cell' && drag.col === ci && drag.row === ri}
+                  onClear={() => change(emptyCell())}
+                  onDragStart={() => setDrag({ from: 'cell', col: ci, row: ri })}
+                  onDragEnd={() => {
+                    setDrag(null)
+                    setOver(null)
+                  }}
+                  onDragOver={() => drag && setOver(key)}
+                  onDragLeave={() => setOver((o) => (o === key ? null : o))}
+                  onDrop={() => drop(ci, ri)}
+                >
+                  <ListCellEdit cell={cell} onChange={change} />
+                </CellFrame>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ListCellEdit({ cell, onChange }: { cell: ListCell; onChange: (c: ListCell) => void }) {
+  const upload = useUpload()
+  if (cell.kind === 'text')
+    return (
+      <>
+        <span className="fg-cell-kind"><Icon name="link" size={12} /> Text / link</span>
+        <input className="inline-input inline-input--strong" value={cell.text} onChange={(e) => onChange({ ...cell, text: e.target.value })} aria-label="Text" />
+        <LinkEdit link={cell.link} noneLabel="Nothing (plain text)" onChange={(link) => onChange({ ...cell, link })} />
+      </>
+    )
+  if (cell.kind === 'image')
+    return (
+      <>
+        <span className="fg-cell-kind"><Icon name="image" size={12} /> Image</span>
+        <ImagePick
+          label=""
+          assetId={cell.assetId}
+          fileName={cell.fileName}
+          onFile={(f) => upload(f, (r) => onChange({ ...cell, assetId: r.assetId, fileName: r.fileName }))}
+          onClear={() => onChange({ ...cell, assetId: null, fileName: null })}
+        />
+        <div className="pc-row">
+          <OptionalNum label="Width" value={cell.width} min={1} max={MAX_HEIGHT} blank="Auto" onChange={(width) => onChange({ ...cell, width })} />
+          <OptionalNum label="Height" value={cell.height} min={1} max={MAX_HEIGHT} blank="Auto" onChange={(height) => onChange({ ...cell, height })} />
+        </div>
+        <small className="muted">Both set: cropped to that shape. One set: keeps its proportions. Neither: fills the column.</small>
+      </>
+    )
+  return null
 }
 
 function ContactForm({ cfg, set }: FormProps) {
@@ -470,7 +748,7 @@ function ContactForm({ cfg, set }: FormProps) {
       </Group>
       <Group title="Emails">
         <Text label="Send enquiries to" type="email" value={contact.notifyEmail} onChange={(notifyEmail) => patch({ notifyEmail: notifyEmail.trim() })} hint="Empty = enquiries only appear on the Enquiries page" />
-        <Text label="Automatic reply" rows={3} value={contact.autoReply} onChange={(autoReply) => patch({ autoReply })} hint="Emailed to senders who gave an email address. Empty = no reply." />
+        <p className="muted small pc-note">The wording of these emails, including the automatic reply, is in Admin › Email templates.</p>
       </Group>
     </>
   )

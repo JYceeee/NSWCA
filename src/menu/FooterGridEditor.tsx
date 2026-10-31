@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { SectionTitle } from '../brand/shared'
 import { Icon, socialIcon } from '../components/Icon'
 import { CELL_KINDS, newCell, PAGES, pageLabel, SOCIALS } from '../data/menus'
@@ -159,7 +159,7 @@ export function FooterGridEditor({ footer, onChange }: { footer: Footer; onChang
   )
 }
 
-function Stepper({ label, value, min, max, onChange, small }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void; small?: boolean }) {
+export function Stepper({ label, value, min, max, onChange, small }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void; small?: boolean }) {
   return (
     <span className={small ? 'stepper stepper--small' : 'stepper'}>
       <span>{label}</span>
@@ -175,7 +175,7 @@ function Stepper({ label, value, min, max, onChange, small }: { label: string; v
 }
 
 /** ‹ › after a column name: moves the column one place left or right. */
-function ColumnMove({ label, first, last, onMove }: { label: string; first: boolean; last: boolean; onMove: (by: -1 | 1) => void }) {
+export function ColumnMove({ label, first, last, onMove }: { label: string; first: boolean; last: boolean; onMove: (by: -1 | 1) => void }) {
   return (
     <span className="col-move">
       <button type="button" disabled={first} aria-label={`Move ${label} left`} title="Move left" onClick={() => onMove(-1)}>
@@ -188,28 +188,30 @@ function ColumnMove({ label, first, last, onMove }: { label: string; first: bool
   )
 }
 
-interface CellProps {
-  cell: FooterCell
+interface CellFrameProps {
+  filled: boolean
+  kind: string
   over: boolean
   dragging: boolean
-  onChange: (c: FooterCell) => void
+  onClear: () => void
   onDragStart: () => void
   onDragEnd: () => void
   onDragOver: () => void
   onDragLeave: () => void
   onDrop: () => void
+  children?: ReactNode
 }
 
-function CellEditor({ cell, over, dragging, onChange, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop }: CellProps) {
+/** A grid cell: drop target, drag handle and clear button around the cell's own fields. */
+export function CellFrame({ filled, kind, over, dragging, onClear, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, children }: CellFrameProps) {
   const [draggable, setDraggable] = useState(false)
-  const filled = cell.kind !== 'empty'
   return (
     <div
       className={['fg-cell', !filled && 'fg-cell--empty', over && 'fg-cell--over', dragging && 'row-dragging'].filter(Boolean).join(' ')}
       draggable={draggable}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move'
-        e.dataTransfer.setData('text/plain', cell.kind)
+        e.dataTransfer.setData('text/plain', kind)
         onDragStart()
       }}
       onDragEnd={() => {
@@ -233,26 +235,32 @@ function CellEditor({ cell, over, dragging, onChange, onDragStart, onDragEnd, on
           <span className="grip" onMouseDown={() => setDraggable(true)} onMouseUp={() => setDraggable(false)} title="Drag to move">
             <Icon name="grip" size={16} stroke={3} />
           </span>
-          <div className="fg-cell-body">
-            <span className="fg-cell-kind">
-              <Icon name={cell.kind === 'page' ? 'link' : kindMeta(cell.kind)?.icon ?? 'link'} size={12} />
-              {cell.kind === 'page' ? 'Page link' : kindMeta(cell.kind)?.label}
-            </span>
-            {cell.kind === 'page' && <strong>{pageLabel(cell.page)}</strong>}
-            {cell.kind === 'logo' && <strong>Logo</strong>}
-            {cell.kind === 'social' && <strong>Social icons</strong>}
-            {(cell.kind === 'heading' || cell.kind === 'copyright' || cell.kind === 'text') && (
-              <input className="inline-input inline-input--strong" value={cell.text} onChange={(e) => onChange({ ...cell, text: e.target.value })} aria-label="Text" />
-            )}
-            {cell.kind === 'text' && (
-              <input className="inline-input inline-input--muted" value={cell.url} placeholder="Link (optional)" onChange={(e) => onChange({ ...cell, url: e.target.value })} aria-label="Link" />
-            )}
-          </div>
-          <button className="icon-btn" title="Clear cell" onClick={() => onChange(empty())}>
+          <div className="fg-cell-body">{children}</div>
+          <button type="button" className="icon-btn" title="Clear cell" onClick={onClear}>
             <Icon name="x" size={14} />
           </button>
         </>
       )}
     </div>
+  )
+}
+
+function CellEditor({ cell, onChange, ...frame }: Omit<CellFrameProps, 'filled' | 'kind' | 'onClear' | 'children'> & { cell: FooterCell; onChange: (c: FooterCell) => void }) {
+  return (
+    <CellFrame {...frame} filled={cell.kind !== 'empty'} kind={cell.kind} onClear={() => onChange(empty())}>
+      <span className="fg-cell-kind">
+        <Icon name={cell.kind === 'page' ? 'link' : kindMeta(cell.kind)?.icon ?? 'link'} size={12} />
+        {cell.kind === 'page' ? 'Page link' : kindMeta(cell.kind)?.label}
+      </span>
+      {cell.kind === 'page' && <strong>{pageLabel(cell.page)}</strong>}
+      {cell.kind === 'logo' && <strong>Logo</strong>}
+      {cell.kind === 'social' && <strong>Social icons</strong>}
+      {(cell.kind === 'heading' || cell.kind === 'copyright' || cell.kind === 'text') && (
+        <input className="inline-input inline-input--strong" value={cell.text} onChange={(e) => onChange({ ...cell, text: e.target.value })} aria-label="Text" />
+      )}
+      {cell.kind === 'text' && (
+        <input className="inline-input inline-input--muted" value={cell.url} placeholder="Link (optional)" onChange={(e) => onChange({ ...cell, url: e.target.value })} aria-label="Link" />
+      )}
+    </CellFrame>
   )
 }

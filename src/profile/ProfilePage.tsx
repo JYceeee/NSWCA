@@ -318,7 +318,7 @@ function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit?: () => vo
           </button>
         )}
       </section>
-      {/* Left: Personal, My membership, Your chess level. Right: Contact, Address, Other. Phones read row by row. */}
+      {/* Left: Personal, My membership, Other. Middle: Your chess level. Right: Contact, Address. Phones read by `order`. */}
       <div className="pf-cards">
         <div className="pf-col">
           <Card title="Personal" order={1}>
@@ -341,6 +341,12 @@ function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit?: () => vo
             <Row label="Days since joining" value={joined != null ? daysText(joined) : '—'} />
             <Row label="Last renew date" value={longDate(p.renewDate)} extra={<RenewHistory p={p} />} />
           </Card>
+          <Card title="Other" order={6}>
+            <Row label="Occupation" value={dash(p.occupation)} />
+            <Row label="Chess club(s)" value={dash(p.clubs)} multiline />
+          </Card>
+        </div>
+        <div className="pf-col">
           <Card title="Your chess level" order={5}>
             <Row label="FIDE number" value={dash(p.fideId)} />
             <Row label="ACF ID" value={dash(p.acfId)} />
@@ -349,7 +355,6 @@ function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit?: () => vo
             <Row label="FIDE Standard" value={dash(p.fideStandard ?? '')} />
             <Row label="FIDE Rapid" value={dash(p.fideRapid ?? '')} />
             <Row label="FIDE Blitz" value={dash(p.fideBlitz ?? '')} />
-            <Row label="K FIDE" value={dash(p.kFide ?? '')} />
             <Row label="ACF rating" value={dash(p.acfRating ?? '')} />
           </Card>
         </div>
@@ -365,10 +370,6 @@ function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit?: () => vo
             <Row label="State" value={dash(p.state)} />
             <Row label="Postcode" value={dash(p.postcode)} />
             <Row label="Country" value={p.country ? countryName(p.country) : '—'} />
-          </Card>
-          <Card title="Other" order={6}>
-            <Row label="Occupation" value={dash(p.occupation)} />
-            <Row label="Chess club(s)" value={dash(p.clubs)} multiline />
           </Card>
         </div>
       </div>
@@ -581,11 +582,14 @@ function EditProfile({
         )}
       </section>
 
-      <section className="pf-section">
-        <h3>My membership</h3>
-        {input('joinDate', 'Join date', '', 'date')}
-        {input('renewDate', 'Last renew date', '', 'date')}
-      </section>
+      {/* Admin only: members join and renew with the button on their profile. */}
+      {!readOnly.has('joinDate') && (
+        <section className="pf-section">
+          <h3>My membership</h3>
+          {input('joinDate', 'Join date', '', 'date')}
+          {input('renewDate', 'Last renew date', '', 'date')}
+        </section>
+      )}
 
       <section className="pf-section">
         <h3>Your chess level</h3>
@@ -608,7 +612,6 @@ function EditProfile({
         {input('fideStandard', 'FIDE Standard', 'Optional – leave empty if unrated')}
         {input('fideRapid', 'FIDE Rapid', 'Optional – leave empty if unrated')}
         {input('fideBlitz', 'FIDE Blitz', 'Optional – leave empty if unrated')}
-        {select('kFide', 'K FIDE', ['10', '20', '40'], 'Optional')}
         {input('acfRating', 'ACF rating', 'Optional – leave empty if unrated')}
       </section>
 

@@ -8,6 +8,7 @@ require __DIR__ . '/_perms.php';
 require __DIR__ . '/_events.php';
 require __DIR__ . '/_users.php';
 require __DIR__ . '/_site.php';
+require __DIR__ . '/_emails.php';
 
 $routes = [
     // Signing in
@@ -59,6 +60,10 @@ $routes = [
     'enquiries.list' => ['GET', fn() => list_enquiries()],
     'enquiries.handled' => ['POST', fn() => mark_enquiry()],
     'enquiries.delete' => ['POST', fn() => delete_enquiry()],
+    'emails.list' => ['GET', fn() => list_email_templates()],
+    'emails.save' => ['POST', fn() => save_email_template()],
+    'emails.restore' => ['POST', fn() => restore_email_template()],
+    'emails.log' => ['POST', fn() => list_email_log()],
     'approvals.list' => ['GET', fn() => list_approvals()],
     'approvals.decide' => ['POST', fn() => decide_approval()],
 ];

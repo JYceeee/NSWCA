@@ -36,6 +36,7 @@ export const NAV: NavItem[] = [
       { id: 'users', label: 'User management' },
       { id: 'approvals', label: 'Review and approval' },
       { id: 'enquiries', label: 'Enquiries' },
+      { id: 'emails', label: 'Email templates' },
     ],
   },
 ]

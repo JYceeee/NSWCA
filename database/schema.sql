@@ -1,12 +1,38 @@
 -- Principles: MySQL schema for DreamHost (MySQL 8 / MariaDB 10.6+).
--- Run once in phpMyAdmin (DreamHost panel › MySQL Databases › phpMyAdmin) on an empty database,
--- then run seed.sql. Every statement is safe to re-run: tables are only created when missing.
+-- Run in phpMyAdmin (DreamHost panel › MySQL Databases › phpMyAdmin), then run seed.sql.
+-- WARNING: this drops every table first, so running it erases all data in the database.
 --
 -- Hybrid design: things the club queries (users, players, events, entries, pairings…) are real tables;
 -- brand/menu sets whose shape changes with the app are JSON documents in design_items.
 -- Text ids (VARCHAR 64) are made by the app (e.g. "ev-lq3x9a1b"); user ids are numbers.
 Use nswcaweb;
 SET NAMES utf8mb4;
+
+-- ---------- Start clean ----------
+
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS audit_log;
+DROP TABLE IF EXISTS enquiries;
+DROP TABLE IF EXISTS approvals;
+DROP TABLE IF EXISTS pairing_boards;
+DROP TABLE IF EXISTS pairing_rounds;
+DROP TABLE IF EXISTS event_byes;
+DROP TABLE IF EXISTS event_entries;
+DROP TABLE IF EXISTS event_arbiters;
+DROP TABLE IF EXISTS event_divisions;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS players;
+DROP TABLE IF EXISTS event_categories;
+DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS design_items;
+DROP TABLE IF EXISTS documents;
+DROP TABLE IF EXISTS uploads;
+DROP TABLE IF EXISTS role_permissions;
+DROP TABLE IF EXISTS permissions;
+DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS profiles;
+DROP TABLE IF EXISTS users;
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------- Accounts ----------
 
@@ -374,7 +400,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   at              DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   actor_id        INT UNSIGNED NULL,
   target_user_id  INT UNSIGNED NULL,
-  -- profile_edit | user_edit | role_change | disable | enable | password_reset | approve | reject | user_create | permission_change | event_approve | event_reject
+  -- profile_edit | user_edit | role_change | disable | enable | password_reset | approve | reject | user_create | permission_change | event_approve | event_reject | email_edit | email_restore
   action          VARCHAR(32)  NOT NULL,
   field           VARCHAR(64)  NULL,
   old_value       TEXT         NULL,

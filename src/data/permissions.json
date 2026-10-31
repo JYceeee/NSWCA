@@ -66,6 +66,10 @@
     { "key": "page.enquiries", "group": "Enquiries", "label": "Open page", "d": [false, false, false, false] },
     { "key": "enquiries.manage", "group": "Enquiries", "label": "Mark enquiries handled and delete them", "d": [false, false, false, false] },
 
+    { "key": "page.emails", "group": "Email templates", "label": "Open page and see each template's history", "d": [false, false, false, false] },
+    { "key": "emails.edit", "group": "Email templates", "label": "Edit templates and restore earlier versions", "d": [false, false, false, false] },
+    { "key": "emails.log", "group": "Email templates", "label": "View log", "d": [false, false, false, false] },
+
     { "key": "page.documents", "group": "Document", "label": "Open page", "d": [false, false, true, true] },
     { "key": "documents.download", "group": "Document", "label": "Download documents and templates", "d": [false, false, true, true] },
     { "key": "documents.add", "group": "Document", "label": "Add document", "d": [false, false, false, false] },

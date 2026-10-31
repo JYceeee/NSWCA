@@ -1,1 +1,3098 @@
-{}
+{
+  "palettes": [
+    {
+      "id": "red-black",
+      "name": "Red-Black",
+      "builtin": true,
+      "tokens": {
+        "primary": "#A3221F",
+        "primary-hover": "#8A1B18",
+        "primary-tint": "#F9E6E5",
+        "on-primary": "#FFFFFF",
+        "secondary": "#6B6A75",
+        "secondary-hover": "#57565F",
+        "secondary-tint": "#EDEDF0",
+        "on-secondary": "#FFFFFF",
+        "link": "#A3221F",
+        "dark": "#333333",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#A3221F",
+        "dark-active-text": "#FFFFFF",
+        "bg": "#F4F4F4",
+        "panel": "#E8E8E8",
+        "card": "#FFFFFF",
+        "heading": "#1D1D1F",
+        "text": "#2A2A2E",
+        "muted": "#5E5D66",
+        "subtle": "#8A8992",
+        "border": "#E3E3E6",
+        "border-light": "#EFEFF1",
+        "border-strong": "#BDBDC4",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#2F6FB0",
+        "chart-2": "#C2453F"
+      },
+      "defaults": {
+        "primary": "#A3221F",
+        "primary-hover": "#8A1B18",
+        "primary-tint": "#F9E6E5",
+        "on-primary": "#FFFFFF",
+        "secondary": "#6B6A75",
+        "secondary-hover": "#57565F",
+        "secondary-tint": "#EDEDF0",
+        "on-secondary": "#FFFFFF",
+        "link": "#A3221F",
+        "dark": "#333333",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#A3221F",
+        "dark-active-text": "#FFFFFF",
+        "bg": "#F4F4F4",
+        "panel": "#E8E8E8",
+        "card": "#FFFFFF",
+        "heading": "#1D1D1F",
+        "text": "#2A2A2E",
+        "muted": "#5E5D66",
+        "subtle": "#8A8992",
+        "border": "#E3E3E6",
+        "border-light": "#EFEFF1",
+        "border-strong": "#BDBDC4",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#2F6FB0",
+        "chart-2": "#C2453F"
+      },
+      "components": {},
+      "componentDefaults": {}
+    },
+    {
+      "id": "lime-black",
+      "name": "Lime-Black",
+      "builtin": true,
+      "tokens": {
+        "primary": "#D9FF55",
+        "primary-hover": "#C6EE3A",
+        "primary-tint": "#F6FFD6",
+        "on-primary": "#000000",
+        "secondary": "#1800AD",
+        "secondary-hover": "#13008A",
+        "secondary-tint": "#E8E5F7",
+        "on-secondary": "#FFFFFF",
+        "link": "#1800AD",
+        "dark": "#0A0A0A",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#D9FF55",
+        "dark-active-text": "#000000",
+        "bg": "#FAFBF7",
+        "panel": "#F5F6F2",
+        "card": "#FFFFFF",
+        "heading": "#0A0A0A",
+        "text": "#1F1F1F",
+        "muted": "#5C5F57",
+        "subtle": "#8A8D84",
+        "border": "#E4E6DF",
+        "border-light": "#EFF0EB",
+        "border-strong": "#C5C8BE",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#6E8F12",
+        "chart-2": "#4B3BD6"
+      },
+      "defaults": {
+        "primary": "#D9FF55",
+        "primary-hover": "#C6EE3A",
+        "primary-tint": "#F6FFD6",
+        "on-primary": "#000000",
+        "secondary": "#1800AD",
+        "secondary-hover": "#13008A",
+        "secondary-tint": "#E8E5F7",
+        "on-secondary": "#FFFFFF",
+        "link": "#1800AD",
+        "dark": "#0A0A0A",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#D9FF55",
+        "dark-active-text": "#000000",
+        "bg": "#FAFBF7",
+        "panel": "#F5F6F2",
+        "card": "#FFFFFF",
+        "heading": "#0A0A0A",
+        "text": "#1F1F1F",
+        "muted": "#5C5F57",
+        "subtle": "#8A8D84",
+        "border": "#E4E6DF",
+        "border-light": "#EFF0EB",
+        "border-strong": "#C5C8BE",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#6E8F12",
+        "chart-2": "#4B3BD6"
+      },
+      "components": {},
+      "componentDefaults": {}
+    },
+    {
+      "id": "orange-black",
+      "name": "Orange-Black",
+      "builtin": true,
+      "tokens": {
+        "primary": "#ED962E",
+        "primary-hover": "#D9811A",
+        "primary-tint": "#FDF1E3",
+        "on-primary": "#FFFFFF",
+        "secondary": "#1D1D1F",
+        "secondary-hover": "#000000",
+        "secondary-tint": "#FAE3C6",
+        "on-secondary": "#FFFFFF",
+        "link": "#D9811A",
+        "dark": "#141414",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#ED962E",
+        "dark-active-text": "#FFFFFF",
+        "bg": "#F7F5F4",
+        "panel": "#F0EDE8",
+        "card": "#FFFFFF",
+        "heading": "#161616",
+        "text": "#444444",
+        "muted": "#555555",
+        "subtle": "#777777",
+        "border": "#ECEFF2",
+        "border-light": "#F2F4F6",
+        "border-strong": "#D9DEE4",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#ED962E",
+        "chart-2": "#444444"
+      },
+      "defaults": {
+        "primary": "#ED962E",
+        "primary-hover": "#D9811A",
+        "primary-tint": "#FDF1E3",
+        "on-primary": "#FFFFFF",
+        "secondary": "#1D1D1F",
+        "secondary-hover": "#000000",
+        "secondary-tint": "#FAE3C6",
+        "on-secondary": "#FFFFFF",
+        "link": "#D9811A",
+        "dark": "#141414",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#ED962E",
+        "dark-active-text": "#FFFFFF",
+        "bg": "#F7F5F4",
+        "panel": "#F0EDE8",
+        "card": "#FFFFFF",
+        "heading": "#161616",
+        "text": "#444444",
+        "muted": "#555555",
+        "subtle": "#777777",
+        "border": "#ECEFF2",
+        "border-light": "#F2F4F6",
+        "border-strong": "#D9DEE4",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#ED962E",
+        "chart-2": "#444444"
+      },
+      "components": {},
+      "componentDefaults": {}
+    },
+    {
+      "id": "blue-slate",
+      "name": "Blue-Slate",
+      "builtin": true,
+      "tokens": {
+        "primary": "#00AEEF",
+        "primary-hover": "#0096CE",
+        "primary-tint": "#E6F7FD",
+        "on-primary": "#FFFFFF",
+        "secondary": "#2C3E50",
+        "secondary-hover": "#1F2D3A",
+        "secondary-tint": "#CCEFFC",
+        "on-secondary": "#FFFFFF",
+        "link": "#0096CE",
+        "dark": "#1D1D1F",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#00AEEF",
+        "dark-active-text": "#FFFFFF",
+        "bg": "#F7F4F4",
+        "panel": "#F3F5F8",
+        "card": "#FFFFFF",
+        "heading": "#1D1D1F",
+        "text": "#2C3E50",
+        "muted": "#4A5A68",
+        "subtle": "#7F8C8D",
+        "border": "#E3E7EB",
+        "border-light": "#EFF2F4",
+        "border-strong": "#BDC3C7",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#00AEEF",
+        "chart-2": "#2C3E50"
+      },
+      "defaults": {
+        "primary": "#00AEEF",
+        "primary-hover": "#0096CE",
+        "primary-tint": "#E6F7FD",
+        "on-primary": "#FFFFFF",
+        "secondary": "#2C3E50",
+        "secondary-hover": "#1F2D3A",
+        "secondary-tint": "#CCEFFC",
+        "on-secondary": "#FFFFFF",
+        "link": "#0096CE",
+        "dark": "#1D1D1F",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#00AEEF",
+        "dark-active-text": "#FFFFFF",
+        "bg": "#F7F4F4",
+        "panel": "#F3F5F8",
+        "card": "#FFFFFF",
+        "heading": "#1D1D1F",
+        "text": "#2C3E50",
+        "muted": "#4A5A68",
+        "subtle": "#7F8C8D",
+        "border": "#E3E7EB",
+        "border-light": "#EFF2F4",
+        "border-strong": "#BDC3C7",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#00AEEF",
+        "chart-2": "#2C3E50"
+      },
+      "components": {},
+      "componentDefaults": {}
+    },
+    {
+      "id": "brown-black",
+      "name": "Brown-Black",
+      "builtin": true,
+      "tokens": {
+        "primary": "#8B5A3C",
+        "primary-hover": "#6F4630",
+        "primary-tint": "#F3EADF",
+        "on-primary": "#FFFFFF",
+        "secondary": "#141414",
+        "secondary-hover": "#000000",
+        "secondary-tint": "#EDE4D3",
+        "on-secondary": "#FFFFFF",
+        "link": "#8B5A3C",
+        "dark": "#141414",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#8B5A3C",
+        "dark-active-text": "#FFFFFF",
+        "bg": "#F9F8F6",
+        "panel": "#EFE8DA",
+        "card": "#FFFFFF",
+        "heading": "#141414",
+        "text": "#2B2622",
+        "muted": "#5E554C",
+        "subtle": "#8C8276",
+        "border": "#E6DFD2",
+        "border-light": "#F0EBE2",
+        "border-strong": "#C9BEAD",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#8B5A3C",
+        "chart-2": "#141414"
+      },
+      "defaults": {
+        "primary": "#8B5A3C",
+        "primary-hover": "#6F4630",
+        "primary-tint": "#F3EADF",
+        "on-primary": "#FFFFFF",
+        "secondary": "#141414",
+        "secondary-hover": "#000000",
+        "secondary-tint": "#EDE4D3",
+        "on-secondary": "#FFFFFF",
+        "link": "#8B5A3C",
+        "dark": "#141414",
+        "on-dark": "#FFFFFF",
+        "dark-active-bg": "#8B5A3C",
+        "dark-active-text": "#FFFFFF",
+        "bg": "#F7F4EE",
+        "panel": "#EFE8DA",
+        "card": "#FFFFFF",
+        "heading": "#141414",
+        "text": "#2B2622",
+        "muted": "#5E554C",
+        "subtle": "#8C8276",
+        "border": "#E6DFD2",
+        "border-light": "#F0EBE2",
+        "border-strong": "#C9BEAD",
+        "success": "#1C8A4A",
+        "success-tint": "#E4F7EA",
+        "warning": "#B8720C",
+        "warning-tint": "#FFF4E0",
+        "danger": "#C0392B",
+        "danger-tint": "#FBE9E7",
+        "chart-1": "#8B5A3C",
+        "chart-2": "#141414"
+      },
+      "components": {},
+      "componentDefaults": {}
+    }
+  ],
+  "typography": [
+    {
+      "id": "typography-1",
+      "name": "Typography 1",
+      "builtin": true,
+      "rows": [
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.05,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display1",
+          "name": "Display 1",
+          "description": "Hero numbers and status icons",
+          "size": 64,
+          "weight": 700,
+          "sampleText": "Aa"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.15,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display2",
+          "name": "Display 2",
+          "description": "Names, card ID and portal status",
+          "size": 32,
+          "weight": 600,
+          "sampleText": "Alex Chen"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "stat",
+          "name": "Stat number",
+          "description": "Dashboard figures",
+          "size": 22,
+          "weight": 700,
+          "sampleText": "$12,480"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.2,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h1",
+          "name": "Heading 1",
+          "description": "Page titles",
+          "size": 28,
+          "weight": 700,
+          "sampleText": "Setting the Standard"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h2",
+          "name": "Heading 2",
+          "description": "Dialog titles, club name",
+          "size": 20,
+          "weight": 700,
+          "sampleText": "Dialog title"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h3",
+          "name": "Heading 3",
+          "description": "Card titles, folder names",
+          "size": 16,
+          "weight": 700,
+          "sampleText": "Card title"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.5,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "p1",
+          "name": "Paragraph 1",
+          "description": "Body text, form fields",
+          "size": 15,
+          "weight": 400,
+          "sampleText": "The quick brown fox jumps"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "table",
+          "name": "Table content",
+          "description": "Text inside table rows",
+          "size": 14,
+          "weight": 400,
+          "sampleText": "Alex Chen · $120.00"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardNumber",
+          "name": "Card number",
+          "description": "Big number on cards, e.g. \"#3\"",
+          "size": 36,
+          "weight": 800,
+          "sampleText": "#3"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardText",
+          "name": "Card text",
+          "description": "Label beside a card number, e.g. \"Club ranking\"",
+          "size": 20,
+          "weight": 600,
+          "sampleText": "Club ranking"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "caption",
+          "name": "Caption",
+          "description": "Muted captions and helper text",
+          "size": 13,
+          "weight": 400,
+          "sampleText": "Updated 2 hours ago"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "button",
+          "name": "Button",
+          "description": "Button labels",
+          "size": 15,
+          "weight": 700,
+          "sampleText": "Primary"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "pill",
+          "name": "Pill",
+          "description": "Status pills and tags",
+          "size": 13,
+          "weight": 600,
+          "sampleText": "Confirmed"
+        },
+        {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "link",
+          "name": "Link",
+          "description": "Inline and standalone links",
+          "size": 15,
+          "weight": 500,
+          "sampleText": "A link to somewhere"
+        }
+      ],
+      "rowDefaults": {
+        "display1": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.05,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display1",
+          "name": "Display 1",
+          "description": "Hero numbers and status icons",
+          "size": 64,
+          "weight": 700,
+          "sampleText": "Aa"
+        },
+        "display2": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.15,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display2",
+          "name": "Display 2",
+          "description": "Names, card ID and portal status",
+          "size": 32,
+          "weight": 600,
+          "sampleText": "Alex Chen"
+        },
+        "stat": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "stat",
+          "name": "Stat number",
+          "description": "Dashboard figures",
+          "size": 22,
+          "weight": 700,
+          "sampleText": "$12,480"
+        },
+        "h1": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.2,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h1",
+          "name": "Heading 1",
+          "description": "Page titles",
+          "size": 28,
+          "weight": 700,
+          "sampleText": "Setting the Standard"
+        },
+        "h2": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h2",
+          "name": "Heading 2",
+          "description": "Dialog titles, club name",
+          "size": 20,
+          "weight": 700,
+          "sampleText": "Dialog title"
+        },
+        "h3": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h3",
+          "name": "Heading 3",
+          "description": "Card titles, folder names",
+          "size": 16,
+          "weight": 700,
+          "sampleText": "Card title"
+        },
+        "p1": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.5,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "p1",
+          "name": "Paragraph 1",
+          "description": "Body text, form fields",
+          "size": 15,
+          "weight": 400,
+          "sampleText": "The quick brown fox jumps"
+        },
+        "table": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "table",
+          "name": "Table content",
+          "description": "Text inside table rows",
+          "size": 14,
+          "weight": 400,
+          "sampleText": "Alex Chen · $120.00"
+        },
+        "cardNumber": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardNumber",
+          "name": "Card number",
+          "description": "Big number on cards, e.g. \"#3\"",
+          "size": 36,
+          "weight": 800,
+          "sampleText": "#3"
+        },
+        "cardText": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardText",
+          "name": "Card text",
+          "description": "Label beside a card number, e.g. \"Club ranking\"",
+          "size": 20,
+          "weight": 600,
+          "sampleText": "Club ranking"
+        },
+        "caption": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "caption",
+          "name": "Caption",
+          "description": "Muted captions and helper text",
+          "size": 13,
+          "weight": 400,
+          "sampleText": "Updated 2 hours ago"
+        },
+        "button": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "button",
+          "name": "Button",
+          "description": "Button labels",
+          "size": 15,
+          "weight": 700,
+          "sampleText": "Primary"
+        },
+        "pill": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "pill",
+          "name": "Pill",
+          "description": "Status pills and tags",
+          "size": 13,
+          "weight": 600,
+          "sampleText": "Confirmed"
+        },
+        "link": {
+          "font": "Wix Madefor Display",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "link",
+          "name": "Link",
+          "description": "Inline and standalone links",
+          "size": 15,
+          "weight": 500,
+          "sampleText": "A link to somewhere"
+        }
+      }
+    },
+    {
+      "id": "typography-2",
+      "name": "Typography 2",
+      "builtin": true,
+      "rows": [
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.05,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display1",
+          "name": "Display 1",
+          "description": "Hero numbers and status icons",
+          "size": 64,
+          "weight": 700,
+          "sampleText": "Aa"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.15,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display2",
+          "name": "Display 2",
+          "description": "Names, card ID and portal status",
+          "size": 32,
+          "weight": 600,
+          "sampleText": "Alex Chen"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "stat",
+          "name": "Stat number",
+          "description": "Dashboard figures",
+          "size": 22,
+          "weight": 700,
+          "sampleText": "$12,480"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.2,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h1",
+          "name": "Heading 1",
+          "description": "Page titles",
+          "size": 19,
+          "weight": 700,
+          "sampleText": "Setting the Standard"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h2",
+          "name": "Heading 2",
+          "description": "Dialog titles, club name",
+          "size": 16,
+          "weight": 700,
+          "sampleText": "Dialog title"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h3",
+          "name": "Heading 3",
+          "description": "Card titles, folder names",
+          "size": 14,
+          "weight": 700,
+          "sampleText": "Card title"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.5,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "p1",
+          "name": "Paragraph 1",
+          "description": "Body text, form fields",
+          "size": 13,
+          "weight": 400,
+          "sampleText": "The quick brown fox jumps"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "table",
+          "name": "Table content",
+          "description": "Text inside table rows",
+          "size": 14,
+          "weight": 400,
+          "sampleText": "Alex Chen · $120.00"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardNumber",
+          "name": "Card number",
+          "description": "Big number on cards, e.g. \"#3\"",
+          "size": 32,
+          "weight": 800,
+          "sampleText": "#3"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardText",
+          "name": "Card text",
+          "description": "Label beside a card number, e.g. \"Club ranking\"",
+          "size": 18,
+          "weight": 600,
+          "sampleText": "Club ranking"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "caption",
+          "name": "Caption",
+          "description": "Muted captions and helper text",
+          "size": 12,
+          "weight": 400,
+          "sampleText": "Updated 2 hours ago"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "button",
+          "name": "Button",
+          "description": "Button labels",
+          "size": 13,
+          "weight": 700,
+          "sampleText": "Primary"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "pill",
+          "name": "Pill",
+          "description": "Status pills and tags",
+          "size": 12,
+          "weight": 600,
+          "sampleText": "Confirmed"
+        },
+        {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "link",
+          "name": "Link",
+          "description": "Inline and standalone links",
+          "size": 13,
+          "weight": 500,
+          "sampleText": "A link to somewhere"
+        }
+      ],
+      "rowDefaults": {
+        "display1": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.05,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display1",
+          "name": "Display 1",
+          "description": "Hero numbers and status icons",
+          "size": 64,
+          "weight": 700,
+          "sampleText": "Aa"
+        },
+        "display2": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.15,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display2",
+          "name": "Display 2",
+          "description": "Names, card ID and portal status",
+          "size": 32,
+          "weight": 600,
+          "sampleText": "Alex Chen"
+        },
+        "stat": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "stat",
+          "name": "Stat number",
+          "description": "Dashboard figures",
+          "size": 22,
+          "weight": 700,
+          "sampleText": "$12,480"
+        },
+        "h1": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.2,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h1",
+          "name": "Heading 1",
+          "description": "Page titles",
+          "size": 19,
+          "weight": 700,
+          "sampleText": "Setting the Standard"
+        },
+        "h2": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h2",
+          "name": "Heading 2",
+          "description": "Dialog titles, club name",
+          "size": 16,
+          "weight": 700,
+          "sampleText": "Dialog title"
+        },
+        "h3": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h3",
+          "name": "Heading 3",
+          "description": "Card titles, folder names",
+          "size": 14,
+          "weight": 700,
+          "sampleText": "Card title"
+        },
+        "p1": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.5,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "p1",
+          "name": "Paragraph 1",
+          "description": "Body text, form fields",
+          "size": 13,
+          "weight": 400,
+          "sampleText": "The quick brown fox jumps"
+        },
+        "table": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "table",
+          "name": "Table content",
+          "description": "Text inside table rows",
+          "size": 14,
+          "weight": 400,
+          "sampleText": "Alex Chen · $120.00"
+        },
+        "cardNumber": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardNumber",
+          "name": "Card number",
+          "description": "Big number on cards, e.g. \"#3\"",
+          "size": 32,
+          "weight": 800,
+          "sampleText": "#3"
+        },
+        "cardText": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardText",
+          "name": "Card text",
+          "description": "Label beside a card number, e.g. \"Club ranking\"",
+          "size": 18,
+          "weight": 600,
+          "sampleText": "Club ranking"
+        },
+        "caption": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "caption",
+          "name": "Caption",
+          "description": "Muted captions and helper text",
+          "size": 12,
+          "weight": 400,
+          "sampleText": "Updated 2 hours ago"
+        },
+        "button": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "button",
+          "name": "Button",
+          "description": "Button labels",
+          "size": 13,
+          "weight": 700,
+          "sampleText": "Primary"
+        },
+        "pill": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "pill",
+          "name": "Pill",
+          "description": "Status pills and tags",
+          "size": 12,
+          "weight": 600,
+          "sampleText": "Confirmed"
+        },
+        "link": {
+          "font": "Montserrat",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "link",
+          "name": "Link",
+          "description": "Inline and standalone links",
+          "size": 13,
+          "weight": 500,
+          "sampleText": "A link to somewhere"
+        }
+      }
+    },
+    {
+      "id": "typography-3",
+      "name": "Typography 3",
+      "builtin": true,
+      "rows": [
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.05,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display1",
+          "name": "Display 1",
+          "description": "Hero numbers and status icons",
+          "size": 64,
+          "weight": 700,
+          "sampleText": "Aa"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.15,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display2",
+          "name": "Display 2",
+          "description": "Names, card ID and portal status",
+          "size": 32,
+          "weight": 600,
+          "sampleText": "Alex Chen"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "stat",
+          "name": "Stat number",
+          "description": "Dashboard figures",
+          "size": 22,
+          "weight": 700,
+          "sampleText": "$12,480"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.2,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h1",
+          "name": "Heading 1",
+          "description": "Page titles",
+          "size": 28,
+          "weight": 700,
+          "sampleText": "Setting the Standard"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h2",
+          "name": "Heading 2",
+          "description": "Dialog titles, club name",
+          "size": 20,
+          "weight": 700,
+          "sampleText": "Dialog title"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h3",
+          "name": "Heading 3",
+          "description": "Card titles, folder names",
+          "size": 16,
+          "weight": 700,
+          "sampleText": "Card title"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.5,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "p1",
+          "name": "Paragraph 1",
+          "description": "Body text, form fields",
+          "size": 15,
+          "weight": 400,
+          "sampleText": "The quick brown fox jumps"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "table",
+          "name": "Table content",
+          "description": "Text inside table rows",
+          "size": 14,
+          "weight": 400,
+          "sampleText": "Alex Chen · $120.00"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardNumber",
+          "name": "Card number",
+          "description": "Big number on cards, e.g. \"#3\"",
+          "size": 36,
+          "weight": 800,
+          "sampleText": "#3"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardText",
+          "name": "Card text",
+          "description": "Label beside a card number, e.g. \"Club ranking\"",
+          "size": 20,
+          "weight": 600,
+          "sampleText": "Club ranking"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "caption",
+          "name": "Caption",
+          "description": "Muted captions and helper text",
+          "size": 13,
+          "weight": 400,
+          "sampleText": "Updated 2 hours ago"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "button",
+          "name": "Button",
+          "description": "Button labels",
+          "size": 15,
+          "weight": 700,
+          "sampleText": "Primary"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "pill",
+          "name": "Pill",
+          "description": "Status pills and tags",
+          "size": 13,
+          "weight": 600,
+          "sampleText": "Confirmed"
+        },
+        {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "link",
+          "name": "Link",
+          "description": "Inline and standalone links",
+          "size": 15,
+          "weight": 500,
+          "sampleText": "A link to somewhere"
+        }
+      ],
+      "rowDefaults": {
+        "display1": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.05,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display1",
+          "name": "Display 1",
+          "description": "Hero numbers and status icons",
+          "size": 64,
+          "weight": 700,
+          "sampleText": "Aa"
+        },
+        "display2": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.15,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "display2",
+          "name": "Display 2",
+          "description": "Names, card ID and portal status",
+          "size": 32,
+          "weight": 600,
+          "sampleText": "Alex Chen"
+        },
+        "stat": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "stat",
+          "name": "Stat number",
+          "description": "Dashboard figures",
+          "size": 22,
+          "weight": 700,
+          "sampleText": "$12,480"
+        },
+        "h1": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.2,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h1",
+          "name": "Heading 1",
+          "description": "Page titles",
+          "size": 28,
+          "weight": 700,
+          "sampleText": "Setting the Standard"
+        },
+        "h2": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h2",
+          "name": "Heading 2",
+          "description": "Dialog titles, club name",
+          "size": 20,
+          "weight": 700,
+          "sampleText": "Dialog title"
+        },
+        "h3": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "h3",
+          "name": "Heading 3",
+          "description": "Card titles, folder names",
+          "size": 16,
+          "weight": 700,
+          "sampleText": "Card title"
+        },
+        "p1": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.5,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "p1",
+          "name": "Paragraph 1",
+          "description": "Body text, form fields",
+          "size": 15,
+          "weight": 400,
+          "sampleText": "The quick brown fox jumps"
+        },
+        "table": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "table",
+          "name": "Table content",
+          "description": "Text inside table rows",
+          "size": 14,
+          "weight": 400,
+          "sampleText": "Alex Chen · $120.00"
+        },
+        "cardNumber": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardNumber",
+          "name": "Card number",
+          "description": "Big number on cards, e.g. \"#3\"",
+          "size": 36,
+          "weight": 800,
+          "sampleText": "#3"
+        },
+        "cardText": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "cardText",
+          "name": "Card text",
+          "description": "Label beside a card number, e.g. \"Club ranking\"",
+          "size": 20,
+          "weight": 600,
+          "sampleText": "Club ranking"
+        },
+        "caption": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "caption",
+          "name": "Caption",
+          "description": "Muted captions and helper text",
+          "size": 13,
+          "weight": 400,
+          "sampleText": "Updated 2 hours ago"
+        },
+        "button": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "button",
+          "name": "Button",
+          "description": "Button labels",
+          "size": 15,
+          "weight": 700,
+          "sampleText": "Primary"
+        },
+        "pill": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "pill",
+          "name": "Pill",
+          "description": "Status pills and tags",
+          "size": 13,
+          "weight": 600,
+          "sampleText": "Confirmed"
+        },
+        "link": {
+          "font": "Outfit",
+          "italic": false,
+          "uppercase": false,
+          "underline": false,
+          "strike": false,
+          "letterSpacing": 0,
+          "lineHeight": 1.3,
+          "sampleSize": null,
+          "builtin": true,
+          "id": "link",
+          "name": "Link",
+          "description": "Inline and standalone links",
+          "size": 15,
+          "weight": 500,
+          "sampleText": "A link to somewhere"
+        }
+      }
+    }
+  ],
+  "backgrounds": [
+    {
+      "id": "bg-dots",
+      "name": "Soft dots",
+      "builtin": true,
+      "type": "pattern",
+      "pattern": {
+        "kind": "dots",
+        "color": {
+          "token": "border-strong",
+          "alpha": 100
+        },
+        "base": {
+          "token": "bg",
+          "alpha": 100
+        },
+        "scale": 22
+      },
+      "image": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "focalX": 50,
+        "focalY": 50,
+        "blur": 0
+      },
+      "video": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "blur": 0
+      }
+    },
+    {
+      "id": "bg-grid",
+      "name": "Blueprint grid",
+      "builtin": true,
+      "type": "pattern",
+      "pattern": {
+        "kind": "grid",
+        "color": {
+          "token": "border",
+          "alpha": 100
+        },
+        "base": {
+          "token": "card",
+          "alpha": 100
+        },
+        "scale": 32
+      },
+      "image": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "focalX": 50,
+        "focalY": 50,
+        "blur": 0
+      },
+      "video": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "blur": 0
+      }
+    },
+    {
+      "id": "bg-diagonal",
+      "name": "Brand diagonal",
+      "builtin": true,
+      "type": "pattern",
+      "pattern": {
+        "kind": "diagonal",
+        "color": {
+          "token": "primary",
+          "alpha": 14
+        },
+        "base": {
+          "token": "primary-tint",
+          "alpha": 100
+        },
+        "scale": 18
+      },
+      "image": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "focalX": 50,
+        "focalY": 50,
+        "blur": 0
+      },
+      "video": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "blur": 0
+      }
+    },
+    {
+      "id": "bg-waves",
+      "name": "Dark waves",
+      "builtin": true,
+      "type": "pattern",
+      "pattern": {
+        "kind": "waves",
+        "color": {
+          "token": "primary",
+          "alpha": 35
+        },
+        "base": {
+          "token": "dark",
+          "alpha": 100
+        },
+        "scale": 60
+      },
+      "image": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "focalX": 50,
+        "focalY": 50,
+        "blur": 0
+      },
+      "video": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "blur": 0
+      }
+    },
+    {
+      "id": "bg-noise",
+      "name": "Paper noise",
+      "builtin": true,
+      "type": "pattern",
+      "pattern": {
+        "kind": "noise",
+        "color": {
+          "token": "heading",
+          "alpha": 18
+        },
+        "base": {
+          "token": "panel",
+          "alpha": 100
+        },
+        "scale": 160
+      },
+      "image": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "focalX": 50,
+        "focalY": 50,
+        "blur": 0
+      },
+      "video": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "blur": 0
+      }
+    },
+    {
+      "id": "bg-photo",
+      "name": "Photo hero",
+      "builtin": true,
+      "type": "image",
+      "pattern": {
+        "kind": "dots",
+        "color": {
+          "token": "border-strong",
+          "alpha": 100
+        },
+        "base": {
+          "token": "bg",
+          "alpha": 100
+        },
+        "scale": 22
+      },
+      "image": {
+        "assetId": "asset-mvvn5878axsz",
+        "fileName": "image3.webp",
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "focalX": 50,
+        "focalY": 50,
+        "blur": 0
+      },
+      "video": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "blur": 0
+      }
+    },
+    {
+      "id": "bg-video",
+      "name": "Video hero",
+      "builtin": true,
+      "type": "video",
+      "pattern": {
+        "kind": "dots",
+        "color": {
+          "token": "border-strong",
+          "alpha": 100
+        },
+        "base": {
+          "token": "bg",
+          "alpha": 100
+        },
+        "scale": 22
+      },
+      "image": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "focalX": 50,
+        "focalY": 50,
+        "blur": 0
+      },
+      "video": {
+        "assetId": null,
+        "fileName": null,
+        "overlay": {
+          "token": "dark",
+          "alpha": 45
+        },
+        "blur": 0
+      }
+    }
+  ],
+  "logos": [
+    {
+      "id": "logo-monogram",
+      "name": "Monogram",
+      "builtin": true,
+      "slots": {
+        "primary": {
+          "kind": "asset",
+          "assetId": "asset-mvvnlbp6qrge",
+          "name": "Full Logo black text.png",
+          "mime": "image/png"
+        },
+        "reversed": {
+          "kind": "asset",
+          "assetId": "asset-mvvnldrw1jvk",
+          "name": "Full Logo white text.png",
+          "mime": "image/png"
+        },
+        "icon": {
+          "kind": "asset",
+          "assetId": "asset-mvvnlp2ua5eg",
+          "name": "NS CA.png",
+          "mime": "image/png"
+        }
+      },
+      "heights": {
+        "primary": 40
+      }
+    },
+    {
+      "id": "logo-wordmark",
+      "name": "Orbit wordmark",
+      "builtin": true,
+      "slots": {
+        "primary": {
+          "kind": "svg",
+          "name": "orbit-primary.svg",
+          "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 64'><circle cx='28' cy='32' r='20' fill='none' stroke='#1D1D1F' stroke-width='7'/><circle cx='28' cy='32' r='6' fill='#1D1D1F'/><text x='60' y='43' font-family='Wix Madefor Display, Arial, sans-serif' font-size='30' font-weight='700' letter-spacing='-1' fill='#1D1D1F'>orbit.</text></svg>"
+        },
+        "reversed": {
+          "kind": "svg",
+          "name": "orbit-reversed.svg",
+          "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 64'><circle cx='28' cy='32' r='20' fill='none' stroke='#FFFFFF' stroke-width='7'/><circle cx='28' cy='32' r='6' fill='#FFFFFF'/><text x='60' y='43' font-family='Wix Madefor Display, Arial, sans-serif' font-size='30' font-weight='700' letter-spacing='-1' fill='#FFFFFF'>orbit.</text></svg>"
+        },
+        "icon": {
+          "kind": "svg",
+          "name": "orbit-icon.svg",
+          "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 64'><rect width='56' height='64' rx='14' fill='#1D1D1F'/><circle cx='28' cy='32' r='20' fill='none' stroke='#FFFFFF' stroke-width='7'/><circle cx='28' cy='32' r='6' fill='#FFFFFF'/></svg>"
+        }
+      }
+    }
+  ],
+  "menus": [
+    {
+      "id": "menu-default",
+      "name": "Default",
+      "builtin": true,
+      "sidebar": {
+        "enabled": false,
+        "subOpen": "hover",
+        "mode": "fixed",
+        "look": {
+          "rows": {
+            "parent": {
+              "style": "p1",
+              "font": null,
+              "size": null,
+              "weight": 600,
+              "uppercase": null,
+              "gap": 2,
+              "padX": 12,
+              "padY": 10
+            },
+            "windowTitle": {
+              "style": "caption",
+              "font": null,
+              "size": null,
+              "weight": 700,
+              "uppercase": true,
+              "gap": 0,
+              "padX": 12,
+              "padY": 6
+            },
+            "sub": {
+              "style": "p1",
+              "font": null,
+              "size": null,
+              "weight": null,
+              "uppercase": null,
+              "gap": 2,
+              "padX": 12,
+              "padY": 8
+            }
+          },
+          "colors": {
+            "bg": null,
+            "text": null,
+            "hover": null,
+            "selected": null,
+            "selectedText": null,
+            "smallText": null,
+            "divider": null,
+            "windowBg": null,
+            "windowText": null,
+            "windowHover": null,
+            "windowSelected": null,
+            "windowBorder": null
+          },
+          "layout": {
+            "expandedWidth": 232,
+            "collapsedWidth": 64
+          }
+        }
+      },
+      "topbar": {
+        "enabled": true,
+        "reversed": true,
+        "light": {
+          "rows": {
+            "tab": {
+              "style": "p1",
+              "font": null,
+              "size": 20,
+              "weight": 600,
+              "uppercase": null,
+              "gap": 20,
+              "padX": 6,
+              "padY": 0
+            },
+            "sub": {
+              "style": "p1",
+              "font": null,
+              "size": 18,
+              "weight": null,
+              "uppercase": null,
+              "gap": 2,
+              "padX": 12,
+              "padY": 8
+            }
+          },
+          "colors": {
+            "bg": {
+              "token": "card",
+              "alpha": 100
+            },
+            "text": {
+              "token": "text",
+              "alpha": 100
+            },
+            "hover": {
+              "token": "heading",
+              "alpha": 100
+            },
+            "active": {
+              "token": "heading",
+              "alpha": 100
+            },
+            "indicator": {
+              "token": "secondary",
+              "alpha": 100
+            },
+            "divider": {
+              "token": "border",
+              "alpha": 100
+            },
+            "dropdownBg": {
+              "token": "card",
+              "alpha": 100
+            },
+            "dropdownText": {
+              "token": "text",
+              "alpha": 100
+            },
+            "dropdownHover": {
+              "token": "panel",
+              "alpha": 100
+            },
+            "dropdownBorder": {
+              "token": "border",
+              "alpha": 100
+            }
+          },
+          "layout": {
+            "height": 90,
+            "padX": 24,
+            "blur": 10
+          }
+        },
+        "dark": {
+          "rows": {
+            "tab": {
+              "style": "p1",
+              "font": null,
+              "size": null,
+              "weight": 600,
+              "uppercase": null,
+              "gap": 20,
+              "padX": 6,
+              "padY": 0
+            },
+            "sub": {
+              "style": "p1",
+              "font": null,
+              "size": null,
+              "weight": null,
+              "uppercase": null,
+              "gap": 2,
+              "padX": 12,
+              "padY": 8
+            }
+          },
+          "colors": {
+            "bg": {
+              "token": "dark",
+              "alpha": 100
+            },
+            "text": {
+              "token": "on-dark",
+              "alpha": 78
+            },
+            "hover": {
+              "token": "on-dark",
+              "alpha": 100
+            },
+            "active": {
+              "token": "on-dark",
+              "alpha": 100
+            },
+            "indicator": {
+              "token": "primary",
+              "alpha": 100
+            },
+            "divider": {
+              "token": "on-dark",
+              "alpha": 12
+            },
+            "dropdownBg": {
+              "token": "dark",
+              "alpha": 100
+            },
+            "dropdownText": {
+              "token": "on-dark",
+              "alpha": 78
+            },
+            "dropdownHover": {
+              "token": "on-dark",
+              "alpha": 8
+            },
+            "dropdownBorder": {
+              "token": "on-dark",
+              "alpha": 14
+            }
+          },
+          "layout": {
+            "height": 60,
+            "padX": 24
+          }
+        }
+      },
+      "footer": {
+        "enabled": true,
+        "reversed": true,
+        "columns": [
+          {
+            "id": "col-1",
+            "cells": [
+              {
+                "kind": "logo"
+              },
+              {
+                "kind": "text",
+                "text": "One place for brand and UI specs.",
+                "url": ""
+              },
+              {
+                "kind": "empty"
+              },
+              {
+                "kind": "social"
+              },
+              {
+                "kind": "copyright",
+                "text": "© 2026 Principles"
+              }
+            ]
+          },
+          {
+            "id": "col-2",
+            "cells": [
+              {
+                "kind": "heading",
+                "text": "Design system"
+              },
+              {
+                "kind": "page",
+                "page": "brand"
+              },
+              {
+                "kind": "page",
+                "page": "menu"
+              },
+              {
+                "kind": "page",
+                "page": "users"
+              },
+              {
+                "kind": "page",
+                "page": "pages"
+              },
+              {
+                "kind": "empty"
+              }
+            ]
+          },
+          {
+            "id": "col-3",
+            "cells": [
+              {
+                "kind": "heading",
+                "text": "Club"
+              },
+              {
+                "kind": "page",
+                "page": "events"
+              },
+              {
+                "kind": "page",
+                "page": "players"
+              },
+              {
+                "kind": "page",
+                "page": "contact"
+              }
+            ]
+          },
+          {
+            "id": "col-4",
+            "cells": [
+              {
+                "kind": "heading",
+                "text": "About"
+              },
+              {
+                "kind": "empty"
+              },
+              {
+                "kind": "empty"
+              }
+            ]
+          }
+        ],
+        "socials": [
+          {
+            "platform": "x",
+            "url": "",
+            "on": true
+          },
+          {
+            "platform": "instagram",
+            "url": "",
+            "on": true
+          },
+          {
+            "platform": "linkedin",
+            "url": "",
+            "on": true
+          },
+          {
+            "platform": "facebook",
+            "url": "",
+            "on": false
+          },
+          {
+            "platform": "youtube",
+            "url": "",
+            "on": false
+          },
+          {
+            "platform": "github",
+            "url": "",
+            "on": false
+          }
+        ],
+        "light": {
+          "rows": {
+            "heading": {
+              "style": "caption",
+              "font": null,
+              "size": null,
+              "weight": 700,
+              "uppercase": true,
+              "gap": 0,
+              "padX": 0,
+              "padY": 0
+            },
+            "link": {
+              "style": "p1",
+              "font": null,
+              "size": null,
+              "weight": null,
+              "uppercase": null,
+              "gap": 0,
+              "padX": 0,
+              "padY": 0
+            },
+            "text": {
+              "style": "caption",
+              "font": null,
+              "size": null,
+              "weight": null,
+              "uppercase": null,
+              "gap": 0,
+              "padX": 0,
+              "padY": 0
+            }
+          },
+          "colors": {
+            "bg": {
+              "token": "bg",
+              "alpha": 100
+            },
+            "heading": {
+              "token": "heading",
+              "alpha": 100
+            },
+            "link": {
+              "token": "text",
+              "alpha": 100
+            },
+            "linkHover": {
+              "token": "heading",
+              "alpha": 100
+            },
+            "text": {
+              "token": "muted",
+              "alpha": 100
+            },
+            "icon": {
+              "token": "muted",
+              "alpha": 100
+            },
+            "divider": {
+              "token": "border",
+              "alpha": 100
+            }
+          },
+          "layout": {
+            "padY": 40,
+            "padX": 32,
+            "colGap": 40,
+            "rowGap": 10
+          }
+        },
+        "dark": {
+          "rows": {
+            "heading": {
+              "style": "caption",
+              "font": null,
+              "size": null,
+              "weight": 700,
+              "uppercase": true,
+              "gap": 0,
+              "padX": 0,
+              "padY": 0
+            },
+            "link": {
+              "style": "p1",
+              "font": null,
+              "size": null,
+              "weight": null,
+              "uppercase": null,
+              "gap": 0,
+              "padX": 0,
+              "padY": 0
+            },
+            "text": {
+              "style": "caption",
+              "font": null,
+              "size": null,
+              "weight": null,
+              "uppercase": null,
+              "gap": 0,
+              "padX": 0,
+              "padY": 0
+            }
+          },
+          "colors": {
+            "bg": {
+              "token": "dark",
+              "alpha": 100
+            },
+            "heading": {
+              "token": "on-dark",
+              "alpha": 100
+            },
+            "link": {
+              "token": "on-dark",
+              "alpha": 78
+            },
+            "linkHover": {
+              "token": "on-dark",
+              "alpha": 100
+            },
+            "text": {
+              "token": "on-dark",
+              "alpha": 60
+            },
+            "icon": {
+              "token": "on-dark",
+              "alpha": 78
+            },
+            "divider": {
+              "token": "on-dark",
+              "alpha": 12
+            }
+          },
+          "layout": {
+            "padY": 40,
+            "padX": 32,
+            "colGap": 40,
+            "rowGap": 10
+          }
+        }
+      }
+    }
+  ],
+  "pages": [
+    {
+      "id": "pages-default",
+      "name": "Pages",
+      "builtin": true,
+      "heads": {
+        "home": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "events": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "byes": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "players": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "contact": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "profile": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "brand": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "menu": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "pages": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "documents": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "users": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "approvals": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        },
+        "enquiries": {
+          "menuLabel": "",
+          "title": "",
+          "intro": "",
+          "image": {
+            "assetId": null,
+            "fileName": null,
+            "overlay": 45,
+            "tone": "auto",
+            "luminance": null
+          },
+          "height": 0
+        }
+      },
+      "home": {
+        "hero": {
+          "enabled": true,
+          "title": "Play, learn and compete\nat your local chess club",
+          "text": "Weekly tournaments, coaching and social nights for players of every level, from first moves to titled competition.",
+          "image": {
+            "assetId": "asset-mvvn68l4xt7u",
+            "fileName": "image2.webp",
+            "overlay": 45,
+            "tone": "dark",
+            "luminance": 0.26532299019607847
+          },
+          "height": 100,
+          "buttons": [
+            {
+              "id": "btn-hero-1",
+              "label": "Upcoming events",
+              "link": {
+                "kind": "page",
+                "page": "events"
+              }
+            },
+            {
+              "id": "btn-hero-2",
+              "label": "Contact us",
+              "link": {
+                "kind": "page",
+                "page": "contact"
+              }
+            }
+          ]
+        },
+        "gallery": {
+          "enabled": true,
+          "title": "What we offer",
+          "text": "Everything you need to enjoy the game, whichever way you like to play it.",
+          "height": 0,
+          "items": [
+            {
+              "id": "gal-1",
+              "title": "Rated tournaments",
+              "text": "FIDE and ACF rated events through the year, run by qualified arbiters.",
+              "assetId": "asset-mvvyxwr1d9xk",
+              "fileName": "image1.webp",
+              "button": {
+                "id": "btn-gal-1",
+                "label": "View details",
+                "link": {
+                  "kind": "page",
+                  "page": "events"
+                }
+              }
+            },
+            {
+              "id": "gal-2",
+              "title": "Coaching",
+              "text": "Group lessons and training nights to sharpen your openings, tactics and endgames.",
+              "assetId": null,
+              "fileName": null,
+              "button": {
+                "id": "btn-gal-2",
+                "label": "View details",
+                "link": {
+                  "kind": "page",
+                  "page": "events"
+                }
+              }
+            },
+            {
+              "id": "gal-3",
+              "title": "Junior chess",
+              "text": "A friendly start for young players, with squads for those ready to compete.",
+              "assetId": null,
+              "fileName": null,
+              "button": {
+                "id": "btn-gal-3",
+                "label": "View details",
+                "link": {
+                  "kind": "page",
+                  "page": "events"
+                }
+              }
+            },
+            {
+              "id": "gal-4",
+              "title": "Social nights",
+              "text": "Casual games, blitz and good company every week. Everyone is welcome.",
+              "assetId": null,
+              "fileName": null,
+              "button": {
+                "id": "btn-gal-4",
+                "label": "View details",
+                "link": {
+                  "kind": "page",
+                  "page": "events"
+                }
+              }
+            }
+          ]
+        },
+        "emphasis": {
+          "enabled": true,
+          "title": "Why join us",
+          "image": {
+            "assetId": "asset-mvvyxss6fwde",
+            "fileName": "image3.webp",
+            "overlay": 60,
+            "tone": "auto",
+            "luminance": 0.35503823988970495
+          },
+          "height": 100,
+          "items": [
+            {
+              "id": "emp-1",
+              "title": "All levels",
+              "text": "Beginners and titled players share the same boards and the same love of the game."
+            },
+            {
+              "id": "emp-2",
+              "title": "Fair play",
+              "text": "Experienced arbiters and clear rules at every club event."
+            },
+            {
+              "id": "emp-3",
+              "title": "Regular events",
+              "text": "A full calendar means there is always a next game to look forward to."
+            },
+            {
+              "id": "emp-4",
+              "title": "Community",
+              "text": "Make friends, find training partners and represent the club in team events."
+            }
+          ],
+          "button": {
+            "id": "btn-emphasis",
+            "label": "Become a member",
+            "link": {
+              "kind": "page",
+              "page": "profile"
+            }
+          }
+        },
+        "projects": {
+          "enabled": true,
+          "title": "Latest news",
+          "height": 0,
+          "inset": 120,
+          "padding": 32,
+          "items": [
+            {
+              "id": "prj-1",
+              "label": "NEWS 01",
+              "title": "Club championship",
+              "text": "Our flagship event returns. See the schedule and enter online from the events calendar.",
+              "assetId": null,
+              "fileName": null,
+              "button": {
+                "id": "btn-prj-1",
+                "label": "View details",
+                "link": {
+                  "kind": "page",
+                  "page": "events"
+                }
+              }
+            },
+            {
+              "id": "prj-2",
+              "label": "NEWS 02",
+              "title": "Junior squad",
+              "text": "Training for our junior squad starts soon, with places for new players.",
+              "assetId": null,
+              "fileName": null,
+              "button": {
+                "id": "btn-prj-2",
+                "label": "View details",
+                "link": {
+                  "kind": "page",
+                  "page": "events"
+                }
+              }
+            },
+            {
+              "id": "prj-3",
+              "label": "NEWS 03",
+              "title": "New members welcome",
+              "text": "Come along to a social night and try the club before you join.",
+              "assetId": null,
+              "fileName": null,
+              "button": {
+                "id": "btn-prj-3",
+                "label": "View details",
+                "link": {
+                  "kind": "page",
+                  "page": "events"
+                }
+              }
+            },
+            {
+              "id": "prj-4",
+              "label": "NEWS 04",
+              "title": "Results and pairings",
+              "text": "Follow every round of our tournaments as pairings and results are published.",
+              "assetId": null,
+              "fileName": null,
+              "button": {
+                "id": "btn-prj-4",
+                "label": "View details",
+                "link": {
+                  "kind": "page",
+                  "page": "events"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "contact": {
+        "title": "Contact Us",
+        "text": "Questions about membership, tournaments or coaching? Send us a message and we’ll get back to you.",
+        "height": 0,
+        "details": "Your club name\nVenue address\nclub@example.com\nPhone number",
+        "links": [],
+        "inquiryTypes": [
+          "General enquiry",
+          "Membership",
+          "Tournaments",
+          "Coaching",
+          "Junior chess"
+        ],
+        "thanks": "Thanks for getting in touch. We’ll reply as soon as we can.",
+        "notifyEmail": "",
+        "autoReply": "Thanks for contacting us. We have your message and will reply as soon as we can."
+      },
+      "profileFields": {},
+      "calendar": {}
+    }
+  ],
+  "applied": {
+    "palette": "lime-black",
+    "typography": "typography-1",
+    "background": "bg-dots",
+    "logos": "logo-monogram",
+    "menu": "menu-default",
+    "events": "events-default",
+    "pages": "pages-default"
+  },
+  "calendar": {
+    "categories": [
+      {
+        "id": "cat-tournament",
+        "name": "Tournament",
+        "color": {
+          "token": "primary",
+          "alpha": 100
+        }
+      },
+      {
+        "id": "cat-training",
+        "name": "Training",
+        "color": {
+          "token": "secondary",
+          "alpha": 100
+        }
+      },
+      {
+        "id": "cat-social",
+        "name": "Social",
+        "color": {
+          "token": "success",
+          "alpha": 100
+        }
+      },
+      {
+        "id": "cat-meeting",
+        "name": "Meeting",
+        "color": {
+          "token": "warning",
+          "alpha": 100
+        }
+      }
+    ],
+    "view": {
+      "cellHeight": {
+        "month": 184,
+        "fortnight": 240,
+        "week": 420
+      },
+      "byDay": false,
+      "startHour": 7,
+      "endHour": 23,
+      "hourHeight": 48
+    }
+  },
+  "assets": {
+    "asset-mvvn5878axsz": "defaults/asset-mvvn5878axsz.webp",
+    "asset-mvvnlbp6qrge": "defaults/asset-mvvnlbp6qrge.png",
+    "asset-mvvnldrw1jvk": "defaults/asset-mvvnldrw1jvk.png",
+    "asset-mvvnlp2ua5eg": "defaults/asset-mvvnlp2ua5eg.png",
+    "asset-mvvn68l4xt7u": "defaults/asset-mvvn68l4xt7u.webp",
+    "asset-mvvyxss6fwde": "defaults/asset-mvvyxss6fwde.webp",
+    "asset-mvvyxwr1d9xk": "defaults/asset-mvvyxwr1d9xk.webp"
+  }
+}

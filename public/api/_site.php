@@ -218,24 +218,31 @@ function upload_dir(): string
 }
 
 const MAX_UPLOAD = 60 * 1024 * 1024;
+const MAX_PHOTO = 5 * 1024 * 1024;
+const PHOTO_TYPES = '#^image/(jpeg|png|webp)$#';
+const BRAND_TYPES = '#^(image/(jpeg|png|webp|gif|avif|svg\+xml)|video/.+)$#';
 
-/** Stores $_FILES['file'] under the given id; returns the upload row id. */
-function store_upload(string $id, string $visibility): string
+/** Stores $_FILES['file'] under the given id; returns the upload row id. $types: what the file's content must be (null = anything). */
+function store_upload(string $id, string $visibility, ?string $types = null, int $max = MAX_UPLOAD): string
 {
     if (!preg_match('/^[\w-]{1,64}$/', $id)) fail(400, 'Bad file id.');
     $f = $_FILES['file'] ?? null;
     if (!$f || ($f['error'] ?? 1) !== UPLOAD_ERR_OK) fail(400, 'The file didn’t arrive. Check its size (the server limit may be lower than 60 MB).');
-    if ($f['size'] > MAX_UPLOAD) fail(413, 'Files can be up to 60 MB.');
+    if ($f['size'] > $max) fail(413, 'Files can be up to ' . (int) ($max / 1024 / 1024) . ' MB.');
     $name = basename((string) $f['name']);
     $ext = strtolower(preg_replace('/[^A-Za-z0-9]/', '', pathinfo($name, PATHINFO_EXTENSION)));
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']) ?: 'application/octet-stream';
-    // SVGs are served as files to download, never inline, so scripts inside can't run on the site.
+    // Some servers see an SVG as plain text or XML. Scripts inside can't run: send_file serves every upload sandboxed.
+    if ($ext === 'svg' && preg_match('#^(text/|application/xml$)#', $mime)) $mime = 'image/svg+xml';
+    if ($types !== null && !preg_match($types, $mime)) fail(415, 'That type of file can’t be uploaded here.');
+    // An id can only be reused by whoever uploaded it, so nobody can replace someone else's logo or photo.
+    $old = row('SELECT path, uploaded_by FROM uploads WHERE id = ?', [$id]);
+    if ($old && (int) $old['uploaded_by'] !== my_id() && !is_admin()) fail(403, 'That file belongs to someone else.');
     $rel = gmdate('Y/m') . "/$id" . ($ext ? ".$ext" : '');
     $abs = upload_dir() . '/' . $rel;
     if (!is_dir(dirname($abs)) && !mkdir(dirname($abs), 0750, true)) fail(500, 'Could not create the upload folder – check upload_dir in api/config.php.');
-    $old = value('SELECT path FROM uploads WHERE id = ?', [$id]);
     if (!move_uploaded_file($f['tmp_name'], $abs)) fail(500, 'Could not save the file.');
-    if ($old && $old !== $rel) @unlink(upload_dir() . '/' . $old);
+    if ($old && $old['path'] !== $rel) @unlink(upload_dir() . '/' . $old['path']);
     q('INSERT INTO uploads (id, file_name, mime, size_bytes, path, visibility, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE file_name = VALUES(file_name), mime = VALUES(mime), size_bytes = VALUES(size_bytes), path = VALUES(path), visibility = VALUES(visibility), uploaded_by = VALUES(uploaded_by)',
         [$id, mb_substr($name, 0, 255), $mime, (int) $f['size'], $rel, $visibility, my_id()]);
@@ -249,8 +256,8 @@ function upload(): array
     $kind = str_in('kind', 16);
     if ($kind === 'photo') need('profile.edit', [], 'upload photos');
     elseif (!can('brand.edit') && !can('pages.edit') && !can('users.import') && !can('users.edit')) fail(403, 'Your role can’t upload files.');
-    $id = store_upload(str_in('id', 64), $kind === 'photo' ? 'private' : 'public');
-    return ['id' => $id];
+    $id = str_in('id', 64);
+    return ['id' => $kind === 'photo' ? store_upload($id, 'private', PHOTO_TYPES, MAX_PHOTO) : store_upload($id, 'public', BRAND_TYPES)];
 }
 
 function can_read_upload(array $u): bool
@@ -317,11 +324,10 @@ function send_enquiry(): array
     $cfg = setting('page_config')['contact'] ?? [];
     $to = trim((string) ($cfg['notifyEmail'] ?? ''));
     if ($to !== '') {
-        $text = "New enquiry from the website\n\nName: $first $last\nEmail: " . ($email ?: '—') . "\nPhone: " . ($phone ?: '—') . "\nClub: " . ($club ?: '—') . "\nType: $type\n\n$message\n";
-        send_mail($to, "Website enquiry: $type", $text, $email ?: null);
+        $vars = ['name' => "$first $last", 'email' => $email ?: '—', 'phone' => $phone ?: '—', 'club' => $club ?: '—', 'type' => $type, 'message' => $message];
+        send_template('enquiry_notify', $to, $vars, $email ?: null);
     }
-    $reply = trim((string) ($cfg['autoReply'] ?? ''));
-    if ($email !== '' && $reply !== '') send_mail($email, 'We received your message', "Hi $first,\n\n$reply\n");
+    if ($email !== '') send_template('enquiry_reply', $email, ['first_name' => $first]);
     return ['ok' => true];
 }
 

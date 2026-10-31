@@ -36,7 +36,7 @@ export function builtinSlices(): Slices {
   }
 }
 
-const PAGE_IDS: PageId[] = ['home', 'contact', 'brand', 'menu', 'pages', 'documents', 'players', 'events', 'byes', 'profile', 'users', 'approvals', 'enquiries']
+const PAGE_IDS: PageId[] = ['home', 'contact', 'brand', 'menu', 'pages', 'documents', 'players', 'events', 'byes', 'profile', 'users', 'approvals', 'enquiries', 'emails']
 
 const SLICES: SliceKey[] = ['palettes', 'typography', 'backgrounds', 'logos', 'menus', 'events', 'pages']
 
@@ -171,7 +171,7 @@ function initialUi(saved: SavedState): UiState {
 
 const TABS: BrandTab[] = ['palette', 'logos', 'typography', 'components']
 const MENU_TABS: MenuTab[] = ['sidebar', 'topbar', 'footer']
-const CONTENT_PAGES: PageId[] = ['home', 'contact', 'pages', 'documents', 'players', 'events', 'byes', 'profile', 'users', 'approvals', 'enquiries']
+const CONTENT_PAGES: PageId[] = ['home', 'contact', 'pages', 'documents', 'players', 'events', 'byes', 'profile', 'users', 'approvals', 'enquiries', 'emails']
 
 /** #palette … #components = Brand tabs, #menu/sidebar = Menu tabs, #events = a page. */
 function parseHash(h: string): NavTarget | null {

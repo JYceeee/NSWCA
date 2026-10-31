@@ -13,10 +13,11 @@ import { ByesPage } from '../events/ByesPage'
 import { ProfilePage } from '../profile/ProfilePage'
 import { ApprovalsPage } from '../admin/ApprovalsPage'
 import { UsersPage } from '../admin/UsersPage'
+import { EmailTemplatesPage } from '../admin/EmailTemplatesPage'
 import { EnquiriesPage } from '../admin/EnquiriesPage'
 import { PageConfigPage } from '../admin/PageConfigPage'
 import { ContactPage } from '../site/ContactPage'
-import { HomePage } from '../site/HomePage'
+import { HomePage, PageSections } from '../site/HomePage'
 import { AccountBar, NoAccess } from '../auth/AccountBar'
 import { MenuPage } from '../menu/MenuPage'
 import { useApplied, useBrand, useSelected, useSession } from '../store/BrandStore'
@@ -163,6 +164,7 @@ export function AppShell() {
                 {ui.page === 'contact' && <ContactPage />}
                 {ui.page === 'pages' && <PageConfigPage />}
                 {ui.page === 'enquiries' && <EnquiriesPage />}
+                {ui.page === 'emails' && <EmailTemplatesPage />}
                 {ui.page === 'brand' && <BrandPage />}
                 {ui.page === 'menu' && <MenuPage />}
                 {ui.page === 'events' && <EventsPage />}
@@ -175,6 +177,8 @@ export function AppShell() {
               </>
             )}
           </div>
+          {/* Outside the page's padding, so section backgrounds reach the edges. Home's sections are its content. */}
+          {ui.page !== 'home' && can(`page.${ui.page}`) && <PageSections page={ui.page} />}
           {footer.enabled && <AppFooter ref={footRef} menu={menu} version={footVersion} />}
         </main>
       </div>

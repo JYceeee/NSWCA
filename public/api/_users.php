@@ -153,11 +153,8 @@ function reset_link(int $userId): string
 
 function mail_reset(array $u, string $link, bool $welcome = false): bool
 {
-    $name = display_name($u);
-    $text = $welcome
-        ? "Hi $name,\n\nAn account has been made for you (username: {$u['username']}).\nSet your password here – the link works once, for 48 hours:\n\n$link\n"
-        : "Hi $name,\n\nUse this link to set a new password – it works once, for 48 hours:\n\n$link\n\nIf you didn’t ask for this, ignore this email.\n";
-    return send_mail($u['email'], $welcome ? 'Your account' : 'Reset your password', $text);
+    $vars = ['name' => display_name($u), 'username' => $u['username'], 'link' => $link];
+    return send_template($welcome ? 'account_created' : 'password_reset', $u['email'], $vars);
 }
 
 function forgot(): array
@@ -405,7 +402,7 @@ function decide_signup(int $userId, bool $approve, string $note = ''): void
             [$approve ? 'approved' : 'rejected', my_id(), now(), $note ?: null, (string) $userId]);
         if ($approve) link_user_player($userId);
         audit($approve ? 'approve' : 'reject', $userId, 'status', 'pending', $approve ? 'active' : 'rejected');
-        if ($approve) send_mail($u['email'], 'Your sign-up was approved', 'Hi ' . display_name($u) . ",\n\nYour account is ready. Sign in at " . site_url() . "/\n");
+        if ($approve) send_template('signup_approved', $u['email'], ['name' => display_name($u), 'site' => site_url() . '/']);
     });
 }
 
@@ -413,19 +410,29 @@ function list_log(): array
 {
     need('users.log', [], 'see the log');
     $uid = input('userId');
-    $where = $uid ? 'WHERE l.target_user_id = ?' : '';
+    return ['log' => log_rows($uid ? 'WHERE l.target_user_id = ?' : '', $uid ? [(int) $uid] : [])];
+}
+
+function list_email_log(): array
+{
+    need('emails.log', [], 'see the log');
+    return ['log' => log_rows("WHERE l.action IN ('email_edit', 'email_restore')")];
+}
+
+function log_rows(string $where, array $args = []): array
+{
     $rows = rows("SELECT l.*, a.username AS actor_username, CONCAT_WS(' ', ap.first_name, ap.last_name) AS actor_name,
                          t.username AS target_username, CONCAT_WS(' ', tp.first_name, tp.last_name) AS target_name
                   FROM audit_log l
                   LEFT JOIN users a ON a.id = l.actor_id LEFT JOIN profiles ap ON ap.user_id = l.actor_id
                   LEFT JOIN users t ON t.id = l.target_user_id LEFT JOIN profiles tp ON tp.user_id = l.target_user_id
-                  $where ORDER BY l.id DESC LIMIT 1000", $uid ? [(int) $uid] : []);
-    return ['log' => array_map(fn($r) => [
+                  $where ORDER BY l.id DESC LIMIT 1000", $args);
+    return array_map(fn($r) => [
         'id' => (int) $r['id'], 'at' => $r['at'], 'action' => $r['action'], 'field' => $r['field'], 'old' => $r['old_value'], 'new' => $r['new_value'],
         'actor' => trim((string) $r['actor_name']) ?: ($r['actor_username'] ?? '—'),
         'targetId' => $r['target_user_id'] === null ? null : (int) $r['target_user_id'],
         'target' => $r['target_user_id'] === null ? null : (trim((string) $r['target_name']) ?: $r['target_username']),
-    ], $rows)];
+    ], $rows);
 }
 
 // ---------- Roles and permissions ----------

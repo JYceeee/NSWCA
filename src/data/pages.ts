@@ -1,33 +1,43 @@
 import { uid } from '../lib/uid'
-import type { ContactConfig, HomeConfig, PageButton, PageConfig, PageHeadConfig, PageId, PageImage, PageLink } from '../types'
+import type { ContactConfig, EmphasisSection, GallerySection, HeroSection, ListCell, ListColumn, PageButton, PageConfig, PageHeadConfig, PageId, PageImage, PageLink, ProjectsSection, Section, SectionKind } from '../types'
 import { PAGES } from './menus'
 
 export const blankImage = (overlay = 45): PageImage => ({ assetId: null, fileName: null, overlay, tone: 'auto', luminance: null })
 
 const blankHead = (): PageHeadConfig => ({ menuLabel: '', title: '', intro: '', image: blankImage(), height: 0 })
 
+/** Minimum height of a section (0 = fit the content). */
+export const sectionHeight = (px: number) => (px ? `${px}px` : undefined)
+
 /** The preview in Page Config stands for a window this tall. */
 const PREVIEW_WINDOW = 720
 
-/** Minimum height of a section from its percent of the window (0 = fit the content). */
-export const sectionHeight = (percent: number, preview?: boolean) => (!percent ? undefined : preview ? `${(percent / 100) * PREVIEW_WINDOW}px` : `${percent}vh`)
+/** Minimum height of a Landing section. */
+export const heroHeight = (hero: HeroSection, preview?: boolean) => (hero.fullWindow ? (preview ? `${PREVIEW_WINDOW}px` : '100vh') : sectionHeight(hero.height))
 
 export const newButton = (label = 'Button', link: PageLink = { kind: 'none' }, id = uid('btn')): PageButton => ({ id, label, link })
 
 const page = (p: PageId): PageLink => ({ kind: 'page', page: p })
 
+const standard = { enabled: true, spaceTop: null, spaceBottom: null }
+
 // Starter items have fixed ids, so the same defaults always compare equal.
-const defaultHome = (): HomeConfig => ({
-  hero: {
-    enabled: true,
+const defaultHome = (): Section[] => [
+  {
+    ...standard,
+    kind: 'hero',
+    id: 'sec-hero',
     title: 'Play, learn and compete\nat your local chess club',
     text: 'Weekly tournaments, coaching and social nights for players of every level, from first moves to titled competition.',
     image: blankImage(),
-    height: 100,
+    fullWindow: true,
+    height: PREVIEW_WINDOW,
     buttons: [newButton('Upcoming events', page('events'), 'btn-hero-1'), newButton('Contact us', page('contact'), 'btn-hero-2')],
   },
-  gallery: {
-    enabled: true,
+  {
+    ...standard,
+    kind: 'gallery',
+    id: 'sec-gallery',
     title: 'What we offer',
     text: 'Everything you need to enjoy the game, whichever way you like to play it.',
     height: 0,
@@ -38,8 +48,10 @@ const defaultHome = (): HomeConfig => ({
       ['Social nights', 'Casual games, blitz and good company every week. Everyone is welcome.'],
     ].map(([title, text], i) => ({ id: `gal-${i + 1}`, title, text, assetId: null, fileName: null, button: newButton('View details', page('events'), `btn-gal-${i + 1}`) })),
   },
-  emphasis: {
-    enabled: true,
+  {
+    ...standard,
+    kind: 'emphasis',
+    id: 'sec-emphasis',
     title: 'Why join us',
     image: blankImage(60),
     height: 0,
@@ -51,8 +63,10 @@ const defaultHome = (): HomeConfig => ({
     ].map(([title, text], i) => ({ id: `emp-${i + 1}`, title, text })),
     button: newButton('Become a member', page('profile'), 'btn-emphasis'),
   },
-  projects: {
-    enabled: true,
+  {
+    ...standard,
+    kind: 'projects',
+    id: 'sec-projects',
     title: 'Latest news',
     height: 0,
     inset: 120,
@@ -64,7 +78,43 @@ const defaultHome = (): HomeConfig => ({
       ['NEWS 04', 'Results and pairings', 'Follow every round of our tournaments as pairings and results are published.'],
     ].map(([label, title, text], i) => ({ id: `prj-${i + 1}`, label, title, text, assetId: null, fileName: null, button: newButton('View details', page('events'), `btn-prj-${i + 1}`) })),
   },
-})
+]
+
+// ---------- Sections ----------
+
+export const SECTION_KINDS: { kind: SectionKind; label: string }[] = [
+  { kind: 'hero', label: 'Landing' },
+  { kind: 'gallery', label: 'Gallery' },
+  { kind: 'emphasis', label: 'Emphasis' },
+  { kind: 'projects', label: 'Project gallery' },
+  { kind: 'list', label: 'List' },
+]
+
+/** The non-admin pages: these can be ticked "Add section". */
+export const SECTION_PAGES: PageId[] = ['home', 'events', 'byes', 'players', 'contact', 'profile']
+
+/** Pages with no fixed content of their own: only these can have a Landing, which sits at the very top. */
+export const LANDING_PAGES: PageId[] = ['home']
+
+export const newListColumn = (): ListColumn => ({ id: uid('col'), title: '', cells: Array.from({ length: 3 }, (): ListCell => ({ kind: 'empty' })) })
+
+export function newListCell(kind: 'text' | 'image'): ListCell {
+  return kind === 'text' ? { kind, text: 'Text', link: { kind: 'none' } } : { kind, assetId: null, fileName: null, width: null, height: null }
+}
+
+export function newSection(kind: SectionKind): Section {
+  const base = { ...standard, id: uid('sec') }
+  switch (kind) {
+    case 'hero': return { ...base, kind, title: 'Heading', text: '', image: blankImage(), fullWindow: true, height: PREVIEW_WINDOW, buttons: [] }
+    case 'gallery': return { ...base, kind, title: 'Heading', text: '', height: 0, items: [] }
+    case 'emphasis': return { ...base, kind, title: 'Heading', image: blankImage(60), height: 0, items: [], button: newButton() }
+    case 'projects': return { ...base, kind, title: 'Heading', height: 0, inset: 120, padding: 32, items: [] }
+    case 'list': return { ...base, kind, title: 'Heading', showTitle: true, image: blankImage(), height: 0, columns: [newListColumn(), newListColumn(), newListColumn()] }
+  }
+}
+
+/** What a page shows below its own content. */
+export const pageSections = (cfg: PageConfig, id: PageId): Section[] => (cfg.sectionPages.includes(id) ? cfg.sections[id] ?? [] : [])
 
 const defaultContact = (): ContactConfig => ({
   title: 'Contact Us',
@@ -75,7 +125,6 @@ const defaultContact = (): ContactConfig => ({
   inquiryTypes: ['General enquiry', 'Membership', 'Tournaments', 'Coaching', 'Junior chess'],
   thanks: 'Thanks for getting in touch. We’ll reply as soon as we can.',
   notifyEmail: '',
-  autoReply: 'Thanks for contacting us. We have your message and will reply as soon as we can.',
 })
 
 export function builtinPages(): PageConfig[] {
@@ -85,7 +134,8 @@ export function builtinPages(): PageConfig[] {
       name: 'Pages',
       builtin: true,
       heads: Object.fromEntries(PAGES.map((p) => [p.id, blankHead()])) as Record<PageId, PageHeadConfig>,
-      home: defaultHome(),
+      sectionPages: ['home'],
+      sections: { home: defaultHome() },
       contact: defaultContact(),
       profileFields: {},
       calendar: {},
@@ -93,23 +143,61 @@ export function builtinPages(): PageConfig[] {
   ]
 }
 
+/** Heights used to be percent of the window; the preview's window stands in for it. */
+const percentToPx = (percent: number) => Math.round((percent / 100) * PREVIEW_WINDOW)
+
+/** The four fixed Home sections of older saves. */
+interface OldHome {
+  hero?: Partial<HeroSection>
+  gallery?: Partial<GallerySection>
+  emphasis?: Partial<EmphasisSection>
+  projects?: Partial<ProjectsSection>
+}
+
+function homeToSections(home: OldHome): Section[] {
+  return defaultHome().map((fresh) => {
+    const old = home[fresh.kind as keyof OldHome]
+    if (!old) return fresh
+    const height = percentToPx(old.height ?? 0)
+    return fresh.kind === 'hero' ? { ...fresh, ...old, fullWindow: height >= PREVIEW_WINDOW, height: height || PREVIEW_WINDOW } : { ...fresh, ...old, height }
+  }) as Section[]
+}
+
 /** Saved config brought up to date: pages and parts added in later versions get their defaults. */
-export function normalizePages(p: PageConfig): PageConfig {
+export function normalizePages(p: PageConfig & { home?: OldHome }): PageConfig {
   const fresh = builtinPages()[0]
-  const home = p.home ?? fresh.home
+  const { home, ...rest } = p
+  // No sections yet = an older save, whose heights are still percentages.
+  const px = (n = 0) => (p.sections ? n : percentToPx(n))
   return {
     ...fresh,
-    ...p,
-    heads: Object.fromEntries(PAGES.map((x) => [x.id, { ...blankHead(), ...p.heads?.[x.id] }])) as Record<PageId, PageHeadConfig>,
-    home: { hero: { ...fresh.home.hero, ...home.hero }, gallery: { ...fresh.home.gallery, ...home.gallery }, emphasis: { ...fresh.home.emphasis, ...home.emphasis }, projects: { ...fresh.home.projects, ...home.projects } },
-    contact: { ...fresh.contact, ...p.contact },
+    ...rest,
+    heads: Object.fromEntries(PAGES.map((x) => {
+      const head = { ...blankHead(), ...p.heads?.[x.id] }
+      return [x.id, { ...head, height: px(head.height) }]
+    })) as Record<PageId, PageHeadConfig>,
+    sections: p.sections ?? (home ? { home: homeToSections(home) } : fresh.sections),
+    contact: { ...fresh.contact, ...p.contact, height: px(p.contact?.height) },
   }
 }
 
 /** Every uploaded file the config uses. */
 export function pageAssets(p: PageConfig): string[] {
-  const { hero, gallery, emphasis, projects } = p.home
-  return [...Object.values(p.heads).map((h) => h.image.assetId), hero.image.assetId, emphasis.image.assetId, ...gallery.items.map((i) => i.assetId), ...projects.items.map((i) => i.assetId)].filter((x): x is string => !!x)
+  return [
+    ...Object.values(p.heads).map((h) => h.image.assetId),
+    ...Object.values(p.sections).flat().flatMap((s) => {
+      switch (s.kind) {
+        case 'hero':
+        case 'emphasis':
+          return [s.image.assetId]
+        case 'gallery':
+        case 'projects':
+          return s.items.map((i) => i.assetId)
+        case 'list':
+          return [s.image.assetId, ...s.columns.flatMap((c) => c.cells.map((x) => (x.kind === 'image' ? x.assetId : null)))]
+      }
+    }),
+  ].filter((x): x is string => !!x)
 }
 
 /** Dark or light once the overlay is taken into account. An image-free section counts as dark (its placeholder is). */
@@ -172,7 +260,7 @@ export const PROFILE_FIELD_GROUPS: { name: string; fields: { key: string; label:
     name: 'Chess level',
     fields: [
       { key: 'fideId', label: 'FIDE number' }, { key: 'acfId', label: 'ACF ID' }, { key: 'federation', label: 'Federation' }, { key: 'title', label: 'Title' },
-      { key: 'fideStandard', label: 'FIDE Standard' }, { key: 'fideRapid', label: 'FIDE Rapid' }, { key: 'fideBlitz', label: 'FIDE Blitz' }, { key: 'kFide', label: 'K FIDE' }, { key: 'acfRating', label: 'ACF rating' },
+      { key: 'fideStandard', label: 'FIDE Standard' }, { key: 'fideRapid', label: 'FIDE Rapid' }, { key: 'fideBlitz', label: 'FIDE Blitz' }, { key: 'acfRating', label: 'ACF rating' },
     ],
   },
   { name: 'Contact', fields: [{ key: 'email', label: 'Email address' }, { key: 'phone', label: 'Phone' }] },
