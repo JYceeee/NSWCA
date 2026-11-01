@@ -65,6 +65,9 @@ export interface EventMeta {
   pendingChange?: boolean
 }
 
+/** New entries wait until the event is approved; only Admin can add them before that. */
+export const entriesOpen = (e: Pick<CalEvent, 'status'>, role?: Role) => (e.status ?? 'approved') === 'approved' || role === 'admin'
+
 export interface Who {
   id: number | null
   grants: Grants

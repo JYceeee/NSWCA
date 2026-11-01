@@ -382,6 +382,7 @@ function put_event(?array $baseIn, array $nextIn): array
 
         if ($cur === null) {
             $a = need('events.add', [], 'add events');
+            if ($N['entries'] && $a['approval']) fail(403, ENTRIES_CLOSED);
             foreach ($N['entries'] as $x) check_entry_allowed($x);
             $status = $a['approval'] ? 'pending' : 'approved';
             link_players($N);
@@ -389,6 +390,7 @@ function put_event(?array $baseIn, array $nextIn): array
             if ($a['approval']) {
                 q("INSERT INTO approvals (kind, target_id, submitted_by) VALUES ('event_new', ?, ?)", [$id, my_id()]);
                 $pending = true;
+                mail_event_submitted($N['core']['name']);
             }
             return ['event' => event_out(load_event($id)), 'pending' => $pending];
         }
@@ -416,6 +418,7 @@ function put_event(?array $baseIn, array $nextIn): array
                     $status = 'pending';
                     q("INSERT INTO approvals (kind, target_id, submitted_by) VALUES ('event_new', ?, ?)", [$id, my_id()]);
                     $pending = true;
+                    mail_event_submitted($core['name']);
                 }
             }
         }
@@ -426,7 +429,10 @@ function put_event(?array $baseIn, array $nextIn): array
             $own = ($b === null || is_mine($b)) && ($n === null || is_mine($n));
             if ($own) need($n === null ? 'events.withdraw' : 'events.enter', $ctx, $n === null ? 'withdraw entries' : 'enter events');
             else need('entries.manage', $ctx, 'change the entries of this event');
-            if ($n !== null && $b === null) check_entry_allowed($n);
+            if ($n !== null && $b === null) {
+                if ($cur['meta']['status'] !== 'approved' && !is_admin()) fail(403, ENTRIES_CLOSED);
+                check_entry_allowed($n);
+            }
         }
 
         $entryById = [];
@@ -458,6 +464,8 @@ function put_event(?array $baseIn, array $nextIn): array
         return ['event' => event_out(load_event($id)), 'pending' => $pending];
     });
 }
+
+const ENTRIES_CLOSED = 'Entries open once an admin approves this event.';
 
 /** A disabled account can't be entered into events. */
 function check_entry_allowed(array $entry): void

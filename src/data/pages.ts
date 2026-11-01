@@ -55,6 +55,7 @@ const defaultHome = (): Section[] => [
     title: 'Why join us',
     image: blankImage(60),
     height: 0,
+    perRow: 4,
     items: [
       ['All levels', 'Beginners and titled players share the same boards and the same love of the game.'],
       ['Fair play', 'Experienced arbiters and clear rules at every club event.'],
@@ -107,7 +108,7 @@ export function newSection(kind: SectionKind): Section {
   switch (kind) {
     case 'hero': return { ...base, kind, title: 'Heading', text: '', image: blankImage(), fullWindow: true, height: PREVIEW_WINDOW, buttons: [] }
     case 'gallery': return { ...base, kind, title: 'Heading', text: '', height: 0, items: [] }
-    case 'emphasis': return { ...base, kind, title: 'Heading', image: blankImage(60), height: 0, items: [], button: newButton() }
+    case 'emphasis': return { ...base, kind, title: 'Heading', image: blankImage(60), height: 0, perRow: 4, items: [], button: newButton() }
     case 'projects': return { ...base, kind, title: 'Heading', height: 0, inset: 120, padding: 32, items: [] }
     case 'list': return { ...base, kind, title: 'Heading', showTitle: true, image: blankImage(), height: 0, columns: [newListColumn(), newListColumn(), newListColumn()] }
   }
@@ -169,6 +170,7 @@ export function normalizePages(p: PageConfig & { home?: OldHome }): PageConfig {
   const { home, ...rest } = p
   // No sections yet = an older save, whose heights are still percentages.
   const px = (n = 0) => (p.sections ? n : percentToPx(n))
+  const sections = p.sections ?? (home ? { home: homeToSections(home) } : fresh.sections)
   return {
     ...fresh,
     ...rest,
@@ -176,7 +178,7 @@ export function normalizePages(p: PageConfig & { home?: OldHome }): PageConfig {
       const head = { ...blankHead(), ...p.heads?.[x.id] }
       return [x.id, { ...head, height: px(head.height) }]
     })) as Record<PageId, PageHeadConfig>,
-    sections: p.sections ?? (home ? { home: homeToSections(home) } : fresh.sections),
+    sections: Object.fromEntries(Object.entries(sections).map(([id, list]) => [id, list.map((s) => (s.kind === 'emphasis' ? { ...s, perRow: s.perRow ?? 4 } : s))])),
     contact: { ...fresh.contact, ...p.contact, height: px(p.contact?.height) },
   }
 }

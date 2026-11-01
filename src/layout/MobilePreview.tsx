@@ -22,11 +22,11 @@ export function usePreviewSync() {
 }
 
 /** The app itself at phone size, in an iframe that opens on the current page. */
-export function MobilePreview({ onClose }: { onClose: () => void }) {
+export function MobilePreview({ hash, onClose }: { hash: string; onClose: () => void }) {
   const [device, setDevice] = useState(DEVICES[1])
   const [landscape, setLandscape] = useState(false)
   const frame = useRef<HTMLIFrameElement>(null)
-  const [src] = useState(() => `${window.location.pathname}?preview=mobile${window.location.hash}`)
+  const [src] = useState(() => `${window.location.pathname}?preview=mobile${hash}`)
   const w = landscape ? device.h : device.w
   const h = landscape ? device.w : device.h
   // Shrink the phone to fit the window.

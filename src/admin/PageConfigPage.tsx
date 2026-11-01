@@ -12,14 +12,15 @@ import { CellFrame, ColumnMove, Stepper } from '../menu/FooterGridEditor'
 import { ContactView } from '../site/ContactPage'
 import { SectionsView } from '../site/HomePage'
 import { PageHead, PageHeadView } from '../site/PageHead'
-import { referencedAssets, uid, useBrand, useSession } from '../store/BrandStore'
-import type { CalMode, EmphasisSection, GalleryItem, GallerySection, HeroSection, ListCell, ListColumn, ListSection, PageButton, PageConfig, PageId, PageImage, PageLink, ProjectsSection, Section, SectionKind, Tone } from '../types'
+import { referencedAssets, uid, useApplied, useBrand, useSession } from '../store/BrandStore'
+import type { CalMode, EmphasisItem, EmphasisSection, GalleryItem, GallerySection, HeroSection, ListCell, ListColumn, ListSection, PageButton, PageConfig, PageId, PageImage, PageLink, ProjectsSection, Section, SectionKind, TextStyleId, Tone } from '../types'
 
 const MAX_IMAGE = 15 * 1024 * 1024
 const MAX_HEIGHT = 3000
 const MAX_SPACE = 600
 const MAX_LIST_COLS = 6
 const MAX_LIST_ROWS = 12
+const MAX_PER_ROW = 6
 
 async function uploadImage(file: File): Promise<{ assetId: string; fileName: string; luminance: number | null }> {
   if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') throw new Error('Please choose a JPG, PNG or WebP image')
@@ -167,6 +168,55 @@ function Text({ label, value, onChange, rows, type, hint }: { label: string; val
       {rows ? <textarea className="ui-input" rows={rows} value={value} onChange={(e) => onChange(e.target.value)} /> : <input className="ui-input" type={type} value={value} onChange={(e) => onChange(e.target.value)} />}
       {hint && <small className="muted">{hint}</small>}
     </label>
+  )
+}
+
+/** Which Brand › Typography row the text uses. */
+function StylePick({ label, value, onChange }: { label: string; value?: TextStyleId; onChange: (id: TextStyleId) => void }) {
+  const { rows } = useApplied('typography')
+  return (
+    <select className="ui-input pc-style" aria-label={`${label} typography`} title="Typography" value={value && rows.some((r) => r.id === value) ? value : ''} onChange={(e) => onChange(e.target.value || null)}>
+      <option value="">Standard</option>
+      {rows.map((r) => (
+        <option key={r.id} value={r.id}>
+          {r.name}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+/** A text field with its typography dropdown beside it. */
+function StyledText({ style, onStyle, ...text }: Parameters<typeof Text>[0] & { style?: TextStyleId; onStyle: (id: TextStyleId) => void }) {
+  return (
+    <div className="pc-styled">
+      <Text {...text} />
+      <StylePick label={text.label} value={style} onChange={onStyle} />
+    </div>
+  )
+}
+
+/** One choice for all of a section's points: each point only has its own wording. */
+function PointStylePicks({ s, patch }: { s: GallerySection | EmphasisSection | ProjectsSection | ListSection; patch: (p: { itemTitleStyle?: TextStyleId; itemTextStyle?: TextStyleId; itemLabelStyle?: TextStyleId }) => void }) {
+  const points = s.kind === 'gallery' ? 'cards' : s.kind === 'projects' ? 'projects' : s.kind === 'list' ? 'columns' : 'points'
+  return (
+    <div className="pc-row pc-point-styles">
+      <small className="muted">Typography for all {points}</small>
+      {s.kind === 'projects' && (
+        <label className="pc-field">
+          <span>Small label</span>
+          <StylePick label="All small labels" value={s.itemLabelStyle} onChange={(itemLabelStyle) => patch({ itemLabelStyle })} />
+        </label>
+      )}
+      <label className="pc-field">
+        <span>Title</span>
+        <StylePick label={`All ${points} title`} value={s.itemTitleStyle} onChange={(itemTitleStyle) => patch({ itemTitleStyle })} />
+      </label>
+      <label className="pc-field">
+        <span>Text</span>
+        <StylePick label={`All ${points} text`} value={s.itemTextStyle} onChange={(itemTextStyle) => patch({ itemTextStyle })} />
+      </label>
+    </div>
   )
 }
 
@@ -480,8 +530,8 @@ function Picture<T extends GalleryItem>({ item, patch }: { item: T; patch: (p: P
 function HeroForm({ s, patch }: SectionFormProps<HeroSection>) {
   return (
     <>
-      <Text label="Heading" rows={2} value={s.title} onChange={(title) => patch({ title })} />
-      <Text label="Text" rows={3} value={s.text} onChange={(text) => patch({ text })} />
+      <StyledText label="Heading" rows={2} value={s.title} onChange={(title) => patch({ title })} style={s.titleStyle} onStyle={(titleStyle) => patch({ titleStyle })} />
+      <StyledText label="Text" rows={3} value={s.text} onChange={(text) => patch({ text })} style={s.textStyle} onStyle={(textStyle) => patch({ textStyle })} />
       <BackgroundPick label="Background image" image={s.image} onChange={(p) => patch({ image: { ...s.image, ...p } })} />
       <label className="check">
         <input type="checkbox" checked={s.fullWindow} onChange={(e) => patch({ fullWindow: e.target.checked })} /> Full window
@@ -498,10 +548,11 @@ function HeroForm({ s, patch }: SectionFormProps<HeroSection>) {
 function GalleryForm({ s, patch }: SectionFormProps<GallerySection>) {
   return (
     <>
-      <Text label="Heading" value={s.title} onChange={(title) => patch({ title })} />
-      <Text label="Text" rows={2} value={s.text} onChange={(text) => patch({ text })} />
+      <StyledText label="Heading" value={s.title} onChange={(title) => patch({ title })} style={s.titleStyle} onStyle={(titleStyle) => patch({ titleStyle })} />
+      <StyledText label="Text" rows={2} value={s.text} onChange={(text) => patch({ text })} style={s.textStyle} onStyle={(textStyle) => patch({ textStyle })} />
       <Height value={s.height} onChange={(height) => patch({ height })} />
       <Spacing section={s} patch={patch} />
+      <PointStylePicks s={s} patch={patch} />
       <ItemList
         items={s.items}
         onChange={(items) => patch({ items })}
@@ -513,7 +564,7 @@ function GalleryForm({ s, patch }: SectionFormProps<GallerySection>) {
           <>
             <Picture item={item} patch={edit} />
             <Text label="Title" value={item.title} onChange={(title) => edit({ title })} />
-            <Text label="Description" rows={3} value={item.text} onChange={(text) => edit({ text })} />
+            <Text label="Text" rows={3} value={item.text} onChange={(text) => edit({ text })} />
             <ButtonEdit button={item.button} onChange={(button) => edit({ button })} />
           </>
         )}
@@ -525,15 +576,17 @@ function GalleryForm({ s, patch }: SectionFormProps<GallerySection>) {
 function EmphasisForm({ s, patch }: SectionFormProps<EmphasisSection>) {
   return (
     <>
-      <Text label="Heading" value={s.title} onChange={(title) => patch({ title })} />
+      <StyledText label="Heading" value={s.title} onChange={(title) => patch({ title })} style={s.titleStyle} onStyle={(titleStyle) => patch({ titleStyle })} />
       <BackgroundPick label="Background image" image={s.image} onChange={(p) => patch({ image: { ...s.image, ...p } })} />
       <Height value={s.height} onChange={(height) => patch({ height })} />
+      <Num label="Points in one row" unit="" value={s.perRow} min={1} max={MAX_PER_ROW} onChange={(perRow) => patch({ perRow })} hint="Tablets show up to 2 in a row, phones 1." />
       <Spacing section={s} patch={patch} />
-      <ItemList items={s.items} onChange={(items) => patch({ items })} make={() => ({ id: uid('emp'), title: '', text: '' })} name="Point" title={(i) => i.title}>
+      <PointStylePicks s={s} patch={patch} />
+      <ItemList items={s.items} onChange={(items) => patch({ items })} make={(): EmphasisItem => ({ id: uid('emp'), title: '', text: '' })} name="Point" title={(i) => i.title}>
         {(item, edit) => (
           <>
             <Text label="Title" value={item.title} onChange={(title) => edit({ title })} />
-            <Text label="Description" rows={3} value={item.text} onChange={(text) => edit({ text })} />
+            <Text label="Text" rows={3} value={item.text} onChange={(text) => edit({ text })} />
           </>
         )}
       </ItemList>
@@ -545,13 +598,14 @@ function EmphasisForm({ s, patch }: SectionFormProps<EmphasisSection>) {
 function ProjectsForm({ s, patch }: SectionFormProps<ProjectsSection>) {
   return (
     <>
-      <Text label="Heading" value={s.title} onChange={(title) => patch({ title })} />
+      <StyledText label="Heading" value={s.title} onChange={(title) => patch({ title })} style={s.titleStyle} onStyle={(titleStyle) => patch({ titleStyle })} />
       <Height value={s.height} onChange={(height) => patch({ height })} />
       <Spacing section={s} patch={patch} />
       <div className="pc-row">
         <Num label="Text area margin from image" value={s.inset} min={0} max={400} onChange={(inset) => patch({ inset })} hint="Where the sliding panel stops, from the image’s left edge. 0 covers the whole image." />
         <Num label="Padding around the text" value={s.padding} min={0} max={120} onChange={(padding) => patch({ padding })} hint="Space between the panel’s edges and its text." />
       </div>
+      <PointStylePicks s={s} patch={patch} />
       <ItemList
         items={s.items}
         onChange={(items) => patch({ items })}
@@ -564,7 +618,7 @@ function ProjectsForm({ s, patch }: SectionFormProps<ProjectsSection>) {
             <Picture item={item} patch={edit} />
             <Text label="Small label" value={item.label} onChange={(label) => edit({ label })} />
             <Text label="Title" value={item.title} onChange={(title) => edit({ title })} />
-            <Text label="Description" rows={3} value={item.text} onChange={(text) => edit({ text })} />
+            <Text label="Text" rows={3} value={item.text} onChange={(text) => edit({ text })} />
             <ButtonEdit button={item.button} onChange={(button) => edit({ button })} />
           </>
         )}
@@ -576,13 +630,14 @@ function ProjectsForm({ s, patch }: SectionFormProps<ProjectsSection>) {
 function ListForm({ s, patch }: SectionFormProps<ListSection>) {
   return (
     <>
-      <Text label="Heading" value={s.title} onChange={(title) => patch({ title })} />
+      <StyledText label="Heading" value={s.title} onChange={(title) => patch({ title })} style={s.titleStyle} onStyle={(titleStyle) => patch({ titleStyle })} />
       <label className="check">
         <input type="checkbox" checked={s.showTitle} onChange={(e) => patch({ showTitle: e.target.checked })} /> Show heading
       </label>
       <BackgroundPick label="Background image" image={s.image} onChange={(p) => patch({ image: { ...s.image, ...p } })} />
       <Height value={s.height} onChange={(height) => patch({ height })} />
       <Spacing section={s} patch={patch} />
+      <PointStylePicks s={s} patch={patch} />
       <ListGrid columns={s.columns} onChange={(columns) => patch({ columns })} />
     </>
   )

@@ -84,9 +84,9 @@
     { "key": "users.permissions", "group": "User management", "label": "Roles and permissions tab", "d": [false, false, false, false] },
     { "key": "users.import", "group": "User management", "label": "Import this browser's data into MySQL", "d": [false, false, false, false] },
 
-    { "key": "page.approvals", "group": "Review and approval", "label": "Open page", "d": [false, false, false, false] },
-    { "key": "approvals.events", "group": "Review and approval", "label": "Approve or reject new events", "d": [false, false, false, false] },
-    { "key": "approvals.changes", "group": "Review and approval", "label": "Approve or reject event changes", "d": [false, false, false, false] },
-    { "key": "approvals.signups", "group": "Review and approval", "label": "Approve or reject member sign-ups", "d": [false, false, false, false] }
+    { "key": "page.approvals", "group": "Review and approval", "label": "Open page", "adminOnly": true, "d": [false, false, false, false] },
+    { "key": "approvals.events", "group": "Review and approval", "label": "Approve or reject new events", "adminOnly": true, "d": [false, false, false, false] },
+    { "key": "approvals.changes", "group": "Review and approval", "label": "Approve or reject event changes", "adminOnly": true, "d": [false, false, false, false] },
+    { "key": "approvals.signups", "group": "Review and approval", "label": "Approve or reject member sign-ups", "adminOnly": true, "d": [false, false, false, false] }
   ]
 }

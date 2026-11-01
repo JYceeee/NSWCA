@@ -2,8 +2,9 @@ import { useState, type CSSProperties } from 'react'
 import { useAssetUrl } from '../brand/shared'
 import { Icon } from '../components/Icon'
 import { heroHeight, isDarkImage, pageSections, safeUrl, sectionHeight } from '../data/pages'
-import { useBrand } from '../store/BrandStore'
-import type { EmphasisSection, GalleryItem, GallerySection, HeroSection, ListCell, ListSection, PageId, ProjectItem, ProjectsSection, Section } from '../types'
+import { ty } from '../lib/theme'
+import { useApplied, useBrand } from '../store/BrandStore'
+import type { EmphasisSection, GalleryItem, GallerySection, HeroSection, ListCell, ListSection, PageId, ProjectItem, ProjectsSection, Section, TextStyleId } from '../types'
 import { PageBackdrop, SiteButton } from './PageHead'
 
 export function HomePage() {
@@ -39,10 +40,17 @@ function SectionView({ section: s, preview }: { section: Section; preview?: bool
   }
 }
 
+/** Styles for a typography row chosen in Page Config. Nothing chosen, or the row was deleted: the section's own look. */
+function useTextStyle() {
+  const { rows } = useApplied('typography')
+  return (id?: TextStyleId) => (id && rows.some((r) => r.id === id) ? ty(`ty-${id}`) : undefined)
+}
+
 /** Page Config's spacing; null keeps the section's standard padding. */
 const spacing = (s: Section) => ({ paddingTop: s.spaceTop ?? undefined, paddingBottom: s.spaceBottom ?? undefined })
 
 function Hero({ hero, preview }: { hero: HeroSection; preview?: boolean }) {
+  const text = useTextStyle()
   const dark = isDarkImage(hero.image)
   const style = {
     '--hero-h': heroHeight(hero, preview),
@@ -54,8 +62,8 @@ function Hero({ hero, preview }: { hero: HeroSection; preview?: boolean }) {
     <section className={dark ? 'hm-hero hm-on-dark' : 'hm-hero'} data-surface={dark ? 'dark' : 'light'} style={style}>
       <PageBackdrop image={hero.image} />
       <div className="hm-wrap hm-hero-text">
-        <h1>{hero.title}</h1>
-        {hero.text && <p>{hero.text}</p>}
+        <h1 style={text(hero.titleStyle)}>{hero.title}</h1>
+        {hero.text && <p style={text(hero.textStyle)}>{hero.text}</p>}
         <div className="hm-actions">
           {hero.buttons.map((b, i) => (
             <SiteButton key={b.id} button={b} variant={i === 0 ? 'primary' : 'soft'} preview={preview} />
@@ -67,14 +75,15 @@ function Hero({ hero, preview }: { hero: HeroSection; preview?: boolean }) {
 }
 
 function Gallery({ gallery, preview }: { gallery: GallerySection; preview?: boolean }) {
+  const text = useTextStyle()
   return (
     <section className="hm-section" style={{ minHeight: sectionHeight(gallery.height), ...spacing(gallery) }}>
       <div className="hm-wrap">
-        <h2>{gallery.title}</h2>
-        {gallery.text && <p className="hm-lead">{gallery.text}</p>}
+        <h2 style={text(gallery.titleStyle)}>{gallery.title}</h2>
+        {gallery.text && <p className="hm-lead" style={text(gallery.textStyle)}>{gallery.text}</p>}
         <div className="hm-gallery">
           {gallery.items.map((item) => (
-            <GalleryCard key={item.id} item={item} preview={preview} />
+            <GalleryCard key={item.id} item={item} titleStyle={gallery.itemTitleStyle} textStyle={gallery.itemTextStyle} preview={preview} />
           ))}
         </div>
       </div>
@@ -83,17 +92,18 @@ function Gallery({ gallery, preview }: { gallery: GallerySection; preview?: bool
 }
 
 function Emphasis({ emphasis, preview }: { emphasis: EmphasisSection; preview?: boolean }) {
+  const text = useTextStyle()
   const dark = isDarkImage(emphasis.image)
   return (
     <section className={dark ? 'hm-emphasis hm-on-dark' : 'hm-emphasis'} data-surface={dark ? 'dark' : 'light'} style={{ minHeight: sectionHeight(emphasis.height), ...spacing(emphasis) }}>
       <PageBackdrop image={emphasis.image} />
       <div className="hm-wrap">
-        <h2>{emphasis.title}</h2>
-        <div className="hm-points">
+        <h2 style={text(emphasis.titleStyle)}>{emphasis.title}</h2>
+        <div className="hm-points" style={{ '--per-row': emphasis.perRow, '--per-row-tablet': Math.min(emphasis.perRow, 2) } as CSSProperties}>
           {emphasis.items.map((item) => (
             <div key={item.id} className="hm-point">
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
+              <h3 style={text(emphasis.itemTitleStyle)}>{item.title}</h3>
+              <p style={text(emphasis.itemTextStyle)}>{item.text}</p>
             </div>
           ))}
         </div>
@@ -106,13 +116,14 @@ function Emphasis({ emphasis, preview }: { emphasis: EmphasisSection; preview?: 
 }
 
 function Projects({ projects, preview }: { projects: ProjectsSection; preview?: boolean }) {
+  const text = useTextStyle()
   return (
     <section className="hm-section" style={{ minHeight: sectionHeight(projects.height), ...spacing(projects) }}>
       <div className="hm-wrap">
-        <h2>{projects.title}</h2>
+        <h2 style={text(projects.titleStyle)}>{projects.title}</h2>
         <div className="hm-projects">
           {projects.items.map((item) => (
-            <ProjectCard key={item.id} item={item} inset={projects.inset} padding={projects.padding} preview={preview} />
+            <ProjectCard key={item.id} item={item} section={projects} preview={preview} />
           ))}
         </div>
       </div>
@@ -121,6 +132,7 @@ function Projects({ projects, preview }: { projects: ProjectsSection; preview?: 
 }
 
 function List({ list, preview }: { list: ListSection; preview?: boolean }) {
+  const text = useTextStyle()
   const backdrop = !!list.image.assetId
   const dark = backdrop && isDarkImage(list.image)
   const title = list.showTitle && list.title.trim()
@@ -132,13 +144,13 @@ function List({ list, preview }: { list: ListSection; preview?: boolean }) {
     >
       {backdrop && <PageBackdrop image={list.image} />}
       <div className="hm-wrap">
-        {title && <h2>{list.title}</h2>}
+        {title && <h2 style={text(list.titleStyle)}>{list.title}</h2>}
         <div className={title ? 'hm-list-grid hm-list-grid--titled' : 'hm-list-grid'} style={{ '--cols': list.columns.length } as CSSProperties}>
           {list.columns.map((col) => (
             <div key={col.id} className="hm-list-col">
-              {col.title.trim() && <h3>{col.title}</h3>}
+              {col.title.trim() && <h3 style={text(list.itemTitleStyle)}>{col.title}</h3>}
               {col.cells.map((cell, i) => (
-                <ListCellView key={i} cell={cell} preview={preview} />
+                <ListCellView key={i} cell={cell} textStyle={list.itemTextStyle} preview={preview} />
               ))}
             </div>
           ))}
@@ -148,8 +160,9 @@ function List({ list, preview }: { list: ListSection; preview?: boolean }) {
   )
 }
 
-function ListCellView({ cell, preview }: { cell: ListCell; preview?: boolean }) {
+function ListCellView({ cell, textStyle, preview }: { cell: ListCell; textStyle?: TextStyleId; preview?: boolean }) {
   const { navigate } = useBrand()
+  const style = useTextStyle()
   const url = useAssetUrl(cell.kind === 'image' ? cell.assetId : null)
   if (cell.kind === 'empty') return <span className="hm-list-empty" aria-hidden />
   if (cell.kind === 'image') {
@@ -159,19 +172,20 @@ function ListCellView({ cell, preview }: { cell: ListCell; preview?: boolean }) 
     return <img className="hm-list-img" src={url} alt="" style={size} />
   }
   const { text, link } = cell
+  const look = style(textStyle)
   if (link.kind === 'page')
     return (
-      <a className="hm-list-link" href={`#${link.page}`} onClick={(e) => (e.preventDefault(), preview || navigate({ page: link.page }))}>
+      <a className="hm-list-link" style={look} href={`#${link.page}`} onClick={(e) => (e.preventDefault(), preview || navigate({ page: link.page }))}>
         {text}
       </a>
     )
   const href = link.kind === 'url' ? safeUrl(link.url) : null
   return href ? (
-    <a className="hm-list-link" href={href} target="_blank" rel="noreferrer" onClick={(e) => preview && e.preventDefault()}>
+    <a className="hm-list-link" style={look} href={href} target="_blank" rel="noreferrer" onClick={(e) => preview && e.preventDefault()}>
       {text}
     </a>
   ) : (
-    <p className="hm-list-text">{text}</p>
+    <p className="hm-list-text" style={look}>{text}</p>
   )
 }
 
@@ -192,33 +206,35 @@ function Picture({ assetId, className }: { assetId: string | null; className: st
   )
 }
 
-function GalleryCard({ item, preview }: { item: GalleryItem; preview?: boolean }) {
+function GalleryCard({ item, titleStyle, textStyle, preview }: { item: GalleryItem; titleStyle?: TextStyleId; textStyle?: TextStyleId; preview?: boolean }) {
+  const text = useTextStyle()
   return (
     <article className="hm-card">
       <Picture assetId={item.assetId} className="hm-card-img" />
-      <h3>{item.title}</h3>
-      <p>{item.text}</p>
+      <h3 style={text(titleStyle)}>{item.title}</h3>
+      <p style={text(textStyle)}>{item.text}</p>
       <SiteButton button={item.button} variant="soft" preview={preview} />
     </article>
   )
 }
 
 /** The description slides in from the right on hover or keyboard focus; on touch screens a tap shows it. */
-function ProjectCard({ item, inset, padding, preview }: { item: ProjectItem; inset: number; padding: number; preview?: boolean }) {
+function ProjectCard({ item, section, preview }: { item: ProjectItem; section: ProjectsSection; preview?: boolean }) {
   const [open, setOpen] = useState(false)
+  const text = useTextStyle()
   return (
     <article
       className={open ? 'hm-project is-open' : 'hm-project'}
       tabIndex={0}
       aria-label={item.title}
-      style={{ '--inset': `${inset}px`, '--pad': `${padding}px` } as CSSProperties}
+      style={{ '--inset': `${section.inset}px`, '--pad': `${section.padding}px` } as CSSProperties}
       onClick={(e) => (e.target as HTMLElement).closest('a') || setOpen(!open)}
     >
       <Picture assetId={item.assetId} className="hm-project-img" />
       <div className="hm-project-panel">
-        {item.label && <span className="hm-project-label">{item.label}</span>}
-        <h3>{item.title}</h3>
-        <p>{item.text}</p>
+        {item.label && <span className="hm-project-label" style={text(section.itemLabelStyle)}>{item.label}</span>}
+        <h3 style={text(section.itemTitleStyle)}>{item.title}</h3>
+        <p style={text(section.itemTextStyle)}>{item.text}</p>
         <SiteButton button={item.button} variant="soft" preview={preview} />
       </div>
     </article>

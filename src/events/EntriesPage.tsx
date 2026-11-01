@@ -4,10 +4,11 @@ import { useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
 import { detailsOf } from '../data/eventDetails'
 import { dateRangeLabel } from '../data/events'
-import { useBrand } from '../store/BrandStore'
+import { useBrand, useSession } from '../store/BrandStore'
 import type { CalEvent, EventEntry } from '../types'
 import { TITLES } from './pairings'
 import { checkPlayer, exportPlayers, isOrganiserAdded, isSamePlayer, SOURCE_LABEL, sourceOf } from './players'
+import { entriesOpen } from '../data/permissions'
 import { AddPlayerDialog, ImportPlayersDialog } from './PlayersDialogs'
 import { playerFromEntry } from './playerList'
 import { useProfileSync } from '../admin/AllPlayersPage'
@@ -53,6 +54,8 @@ export function EntriesPage({ id }: { id: string }) {
   const { navigate, setEntriesGuard } = useBrand()
   const { confirm, toast } = useDialogs()
   const event = book.events.find((e) => e.id === id)
+  const { user } = useSession()
+  const canAdd = !event || entriesOpen(event, user?.role)
   const entries = useMemo(() => event?.entries ?? [], [event])
   const [draft, setDraft] = useState<EventEntry[]>(() => structuredClone(entries))
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -227,12 +230,16 @@ export function EntriesPage({ id }: { id: string }) {
           </div>
         )}
         <span className="ae-toolbar-gap" />
-        <button className="ui-btn" onClick={() => setDialog('add')}>
-          <Icon name="plus" size={15} /> Add
-        </button>
-        <button className="ui-btn" onClick={() => setDialog('import')}>
-          <Icon name="upload" size={15} /> Import
-        </button>
+        {canAdd && (
+          <>
+            <button className="ui-btn" onClick={() => setDialog('add')}>
+              <Icon name="plus" size={15} /> Add
+            </button>
+            <button className="ui-btn" onClick={() => setDialog('import')}>
+              <Icon name="upload" size={15} /> Import
+            </button>
+          </>
+        )}
         <button className="ui-btn" disabled={!draft.length} onClick={exportAll}>
           <Icon name="download" size={15} /> Export to Excel
         </button>

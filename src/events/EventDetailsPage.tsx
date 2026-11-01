@@ -16,6 +16,7 @@ import { StatusBadge } from './EventsPage'
 import type { CalEvent, EventDetailsData, EventEntry } from '../types'
 import { EventForm } from './EventDialogs'
 import { fedCode } from '../data/countries'
+import { entriesOpen } from '../data/permissions'
 import { byeFor, byeValues, isReleased, scheduledRounds } from './byes'
 import { PairingsSection } from './PairingsSection'
 import { AddPlayerDialog, ImportPlayersDialog } from './PlayersDialogs'
@@ -96,6 +97,7 @@ function useEntryState(event: CalEvent, tournament: boolean): EntryState {
   const profile = { ...emptyProfile(), ...saved.profile }
   const d = detailsOf(event)
   if (tournament && isDraft(event, book.categories)) return { kind: 'blocked', reason: 'Entries open once the tournament details are complete' }
+  if (!entriesOpen(event, user?.role)) return { kind: 'blocked', reason: 'Entries open once an admin approves this event' }
   if (d.registrationUrl.trim()) return { kind: 'register', url: d.registrationUrl.trim() }
   const mine = profile.email && event.entries?.find((x) => x.email.toLowerCase() === profile.email.toLowerCase())
   if (mine) return { kind: 'entered', entry: mine }
@@ -120,7 +122,7 @@ function DetailsView({
 }) {
   const { book } = useEventBook()
   const { saved, navigate } = useBrand()
-  const { can, needsApproval } = useSession()
+  const { can, needsApproval, user } = useSession()
   const { toast } = useDialogs()
   const palette = useApplied('palettes')
   const profile = { ...emptyProfile(), ...saved.profile }
@@ -129,7 +131,7 @@ function DetailsView({
   const canEdit = can('events.edit', event)
   /** An approved event's edits wait for an admin. */
   const viaApproval = canEdit && needsApproval('events.edit', event) && event.status === 'approved'
-  const manage = can('entries.manage', event)
+  const manage = can('entries.manage', event) && entriesOpen(event, user?.role)
   const draft = tournament && isDraft(event, book.categories)
   const missing = missingSections(event, book.categories)
   const state = useEntryState(event, tournament)

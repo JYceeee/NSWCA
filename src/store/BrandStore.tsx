@@ -273,10 +273,11 @@ export interface Session {
   can: (key: string, event?: CalEvent | null) => boolean
   /** The change waits for an admin's approval. */
   needsApproval: (key: string, event?: CalEvent | null) => boolean
-  refresh: () => Promise<void>
+  refresh: () => Promise<SessionUser | null | undefined>
   say: (text: string) => void
   setDocuments: (docs: DocItem[]) => void
-  login: (login: string, password: string) => Promise<void>
+  /** Resolves with who signed in. */
+  login: (login: string, password: string) => Promise<SessionUser | null>
   logout: () => Promise<void>
 }
 
@@ -355,15 +356,17 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
     savedRef.current = next
   }, [])
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<SessionUser | null | undefined> => {
     if (LOCAL_ONLY) return
     try {
       const s = await apiGet<ServerState>('state')
       adopt(s)
       setStatus('online')
+      return s.user
     } catch (e) {
       setStatus('offline')
       if (e instanceof ApiError && e.status >= 500) say(e.message)
+      return null
     }
   }, [adopt, say])
 
@@ -466,7 +469,7 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
       setDocuments: (documents) => setServer((s) => s && { ...s, documents }),
       async login(login, password) {
         await apiPost('login', { login, password })
-        await refresh()
+        return (await refresh()) ?? null
       },
       async logout() {
         await apiPost('logout').catch(() => {})

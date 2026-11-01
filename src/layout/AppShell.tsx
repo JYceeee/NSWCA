@@ -20,14 +20,15 @@ import { ContactPage } from '../site/ContactPage'
 import { HomePage, PageSections } from '../site/HomePage'
 import { AccountBar, NoAccess } from '../auth/AccountBar'
 import { MenuPage } from '../menu/MenuPage'
+import { ADMIN_PAGES } from '../data/menus'
 import { useApplied, useBrand, useSelected, useSession } from '../store/BrandStore'
 import type { BarVersion, LogoSet, MenuSet } from '../types'
 import { AppFooter } from './Footer'
 import { IS_PREVIEW, MobilePreview, usePreviewSync } from './MobilePreview'
-import { AppSidebar } from './Sidebar'
+import { AdminSidebar, AppSidebar } from './Sidebar'
 import { useDarkSurface } from './surface'
 import { TopBar } from './TopBar'
-import { usePageLabel } from './useNav'
+import { useAdminPortal, usePageLabel } from './useNav'
 
 /** On the Menu page the chrome previews the menu set being edited; elsewhere it shows the applied one. */
 function useShellMenu(): MenuSet {
@@ -97,10 +98,11 @@ function useVersion(area: 'topbar' | 'footer', menu: MenuSet, autoDark: boolean)
 }
 
 export function AppShell() {
-  const { ui } = useBrand()
+  const { ui, navigate } = useBrand()
   const { can } = useSession()
   const pageLabel = usePageLabel()
   const menu = useShellMenu()
+  const portal = useAdminPortal()
   useAppTheme(menu)
   useFavicon(useApplied('logos'))
   const mobile = useMobile()
@@ -112,12 +114,20 @@ export function AppShell() {
   const topRef = useRef<HTMLElement>(null)
   const footRef = useRef<HTMLElement>(null)
   const { topbar, footer } = menu
+  // The portal has neither, except on the Menu page: that's where they're edited, and they are its preview.
+  const siteChrome = !portal || ui.page === 'menu'
+  const showTop = topbar.enabled && siteChrome
+  const showFoot = footer.enabled && siteChrome
+
+  useEffect(() => {
+    if (portal && !ADMIN_PAGES.includes(ui.page)) navigate({ page: 'approvals' })
+  }, [portal, ui.page, navigate])
 
   // The reversed bar only comes on once a dark section is behind the whole bar: both its edges.
-  const topBottomDark = useDarkSurface(topRef, topbar.enabled && topbar.reversed, 'behind', [ui.page])
-  const topTopDark = useDarkSurface(topRef, topbar.enabled && topbar.reversed, 'top', [ui.page])
+  const topBottomDark = useDarkSurface(topRef, showTop && topbar.reversed, 'behind', [ui.page])
+  const topTopDark = useDarkSurface(topRef, showTop && topbar.reversed, 'top', [ui.page])
   const topDark = topBottomDark && topTopDark
-  const footDark = useDarkSurface(footRef, footer.enabled && footer.reversed, 'above', [ui.page])
+  const footDark = useDarkSurface(footRef, showFoot && footer.reversed, 'above', [ui.page])
   const topVersion = useVersion('topbar', menu, topDark)
   const footVersion = useVersion('footer', menu, footDark)
   // Reversed, it is always see-through.
@@ -137,7 +147,7 @@ export function AppShell() {
     const ro = new ResizeObserver(() => root.style.setProperty('--topbar-h', `${el.offsetHeight}px`))
     ro.observe(el)
     return () => ro.disconnect()
-  }, [topbar.enabled])
+  }, [showTop])
 
   const toggle = (
     <button className="nav-toggle icon-btn" onClick={() => setNavOpen(!navOpen)} aria-label="Toggle navigation">
@@ -146,16 +156,16 @@ export function AppShell() {
   )
 
   return (
-    <div className={['shell', navOpen && 'shell--nav-open', topbar.enabled && 'shell--topbar'].filter(Boolean).join(' ')}>
-      {topbar.enabled && <TopBar ref={topRef} menu={menu} version={topVersion} clear={topClear} toggle={toggle} onPreview={onPreview} />}
+    <div className={['shell', navOpen && 'shell--nav-open', showTop && 'shell--topbar'].filter(Boolean).join(' ')}>
+      {showTop && <TopBar ref={topRef} menu={menu} version={topVersion} clear={topClear} toggle={toggle} onPreview={portal ? undefined : onPreview} />}
       <div className="shell-body">
         {/* Off = no sidebar on desktop; phones keep the drawer, as the top bar hides its tabs there. */}
-        {(menu.sidebar.enabled !== false || mobile) && <AppSidebar menu={menu} mobile={mobile} showHead={!topbar.enabled} onPreview={onPreview} />}
-        {!topbar.enabled && toggle}
+        {portal ? <AdminSidebar onPreview={onPreview} /> : (menu.sidebar.enabled !== false || mobile) && <AppSidebar menu={menu} mobile={mobile} showHead={!topbar.enabled} onPreview={onPreview} />}
+        {!showTop && toggle}
         <div className="nav-scrim" onClick={() => setNavOpen(false)} />
         <main className="app-main">
           <div className={bleed ? 'app-page app-page--bleed' : 'app-page'}>
-            <AccountBar inTopBar={topbar.enabled} />
+            <AccountBar inTopBar={topbar.enabled && !portal} />
             {!can(`page.${ui.page}`) ? (
               <NoAccess page={pageLabel(ui.page)} />
             ) : (
@@ -179,11 +189,11 @@ export function AppShell() {
           </div>
           {/* Outside the page's padding, so section backgrounds reach the edges. Home's sections are its content. */}
           {ui.page !== 'home' && can(`page.${ui.page}`) && <PageSections page={ui.page} />}
-          {footer.enabled && <AppFooter ref={footRef} menu={menu} version={footVersion} />}
+          {showFoot && <AppFooter ref={footRef} menu={menu} version={footVersion} />}
         </main>
       </div>
       <NavPrompt />
-      {preview && <MobilePreview onClose={() => setPreview(false)} />}
+      {preview && <MobilePreview hash={portal ? '#home' : window.location.hash} onClose={() => setPreview(false)} />}
     </div>
   )
 }

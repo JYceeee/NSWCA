@@ -52,6 +52,27 @@ function email_defaults(): array
             'subject' => 'We received your message',
             'body' => $reply === '' ? '' : "Hi {{first_name}},\n\n$reply",
         ],
+        'event_submitted' => [
+            'name' => 'Event submitted', 'description' => 'When a Tournament Organiser’s new event is waiting for approval.', 'to' => 'Every Admin',
+            'vars' => ['organiser' => ['Who sent it', 'Alex Chen'], 'event' => ['Event name', 'Club Championship'], 'link' => ['Review and approval page', site_url() . '/#approvals']],
+            'required' => [], 'optional' => false,
+            'subject' => 'Event waiting for approval: {{event}}',
+            'body' => "{{organiser}} submitted a new event for approval:\n\n{{event}}\n\nReview it here: {{link}}",
+        ],
+        'event_approved' => [
+            'name' => 'Event approved', 'description' => 'When an admin approves a new event.', 'to' => 'The organiser',
+            'vars' => $person + ['event' => ['Event name', 'Club Championship'], 'link' => ['Upcoming events page', site_url() . '/#events']],
+            'required' => [], 'optional' => false,
+            'subject' => 'Your event was approved: {{event}}',
+            'body' => "Hi {{name}},\n\nYour event {{event}} was approved. It’s now on the calendar and open for entries.\n\n{{link}}",
+        ],
+        'event_rejected' => [
+            'name' => 'Event not approved', 'description' => 'When an admin rejects a new event.', 'to' => 'The organiser',
+            'vars' => $person + ['event' => ['Event name', 'Club Championship'], 'note' => ['Admin’s note', 'Please add the venue.'], 'link' => ['Upcoming events page', site_url() . '/#events']],
+            'required' => [], 'optional' => false,
+            'subject' => 'Your event wasn’t approved: {{event}}',
+            'body' => "Hi {{name}},\n\nYour event {{event}} wasn’t approved.\n\nNote from the admin: {{note}}\n\nYou can edit the event and send it again: {{link}}",
+        ],
     ];
 }
 
@@ -91,6 +112,23 @@ function send_template(string $id, string $to, array $vars, ?string $replyTo = n
     $body = trim((string) ($saved['body'] ?? $def['body']));
     if ($body === '') return false;
     return send_mail($to, email_fill($saved['subject'] ?? $def['subject'], $vars), email_fill($body, $vars) . "\n", $replyTo);
+}
+
+/** Tells every active Admin that a new event is waiting. */
+function mail_event_submitted(string $event): void
+{
+    $vars = ['organiser' => display_name(me()), 'event' => $event, 'link' => site_url() . '/#approvals'];
+    foreach (rows("SELECT email FROM users WHERE role = 'admin' AND status = 'active'") as $u) send_template('event_submitted', $u['email'], $vars);
+}
+
+/** Tells the organiser what happened to their new event. */
+function mail_event_decision(array $ev, bool $approve, string $note): void
+{
+    $id = $ev['meta']['createdBy'];
+    if ($id === null || !value('SELECT 1 FROM users WHERE id = ?', [$id])) return;
+    $u = user_row($id);
+    $vars = ['name' => display_name($u), 'event' => $ev['core']['name'], 'note' => $note ?: '—', 'link' => site_url() . '/#events'];
+    send_template($approve ? 'event_approved' : 'event_rejected', $u['email'], $vars);
 }
 
 function check_email_text(array $def, string $subject, string $body): void

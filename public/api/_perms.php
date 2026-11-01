@@ -2,6 +2,9 @@
 // Roles and permissions: the matrix in role_permissions, checked on every write.
 declare(strict_types=1);
 
+/** Only Admin can ever have these, whatever role_permissions says. */
+const ADMIN_ONLY_PERMS = ['profile.memberDates', 'page.approvals', 'approvals.events', 'approvals.changes', 'approvals.signups'];
+
 /** Every permission row: perm_key => [group, label, scopes[]]. */
 function perm_rows(): array
 {
@@ -35,6 +38,7 @@ function grant(string $key): bool|string
 {
     $role = my_role();
     if ($role === 'admin') return true;
+    if (in_array($key, ADMIN_ONLY_PERMS, true)) return false;
     return perm_matrix()[$role][$key] ?? false;
 }
 

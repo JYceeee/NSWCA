@@ -2,17 +2,77 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { LogoImage } from '../brand/LogosTab'
 import { Icon } from '../components/Icon'
 import { logoHeight } from '../data/logos'
-import { isActive, NAV, type NavItem } from '../data/menus'
+import { ADMIN_NAV, isActive, NAV, type NavItem } from '../data/menus'
 import { mv } from '../lib/menuTheme'
 import { ty } from '../lib/theme'
-import { hashFor, useApplied, useBrand } from '../store/BrandStore'
-import { useVisibleNav } from './useNav'
+import { hashFor, useApplied, useBrand, useSession } from '../store/BrandStore'
+import { usePageLabel, useVisibleNav } from './useNav'
 import type { MenuSet, PageId } from '../types'
 
 const P = 'mn-sb'
 const c = (k: string) => mv(P, `c-${k}`)
 /** Lets the cursor cross the gap between a tab and its window. */
 const CLOSE_DELAY = 160
+
+/** A top-level side bar row, on the look set in Admin › Menu. */
+export const sidebarItemStyle = (active: boolean): CSSProperties => ({
+  ...ty(`${P}-parent`),
+  padding: `${mv(P, 'parent-padY')} ${mv(P, 'parent-padX')}`,
+  background: active ? c('selected') : undefined,
+  color: active ? c('selectedText') : c('text'),
+})
+
+/**
+ * The admin portal's side bar: always open on desktop, a drawer on phones. The menu's look, its own pages.
+ * AccountBar fills #sb-account.
+ */
+export function AdminSidebar({ onPreview }: { onPreview?: () => void }) {
+  const { ui, navigate } = useBrand()
+  const { pendingApprovals } = useSession()
+  const logos = useApplied('logos')
+  const label = usePageLabel()
+  return (
+    <div className="sb-slot sb-slot--fixed">
+      <aside className="app-sidebar app-sidebar--wide sb-portal" style={{ background: c('bg') }}>
+        <div className="app-sidebar-head" style={{ borderBottom: `1px solid ${c('divider')}` }}>
+          <LogoImage set={logos} slot="reversed" height={logoHeight(logos, 'reversed')} />
+        </div>
+        <nav className="app-menu" style={{ gap: mv(P, 'parent-gap') }}>
+          {ADMIN_NAV.map(({ id, icon }) => (
+            <a
+              key={id}
+              href={`#${hashFor({ ...ui, page: id, eventId: null })}`}
+              className={id === ui.page ? 'app-menu-item is-active' : 'app-menu-item'}
+              style={sidebarItemStyle(id === ui.page)}
+              aria-current={id === ui.page ? 'page' : undefined}
+              onClick={(e) => {
+                e.preventDefault()
+                navigate({ page: id })
+              }}
+            >
+              <span className="sb-icon">
+                <Icon name={icon} size={18} />
+              </span>
+              <span className="sb-label">{label(id)}</span>
+              {id === 'approvals' && pendingApprovals > 0 && <span className="rv-count sb-count">{pendingApprovals}</span>}
+            </a>
+          ))}
+        </nav>
+        <div className="sb-account" style={{ borderTop: `1px solid ${c('divider')}`, color: c('smallText') }}>
+          {onPreview && (
+            <button className="app-menu-item sb-account-preview" style={sidebarItemStyle(false)} onClick={onPreview}>
+              <span className="sb-icon">
+                <Icon name="phone" size={18} />
+              </span>
+              <span className="sb-label">Preview mobile</span>
+            </button>
+          )}
+          <div id="sb-account" className="sb-account-list" />
+        </div>
+      </aside>
+    </div>
+  )
+}
 
 /**
  * The app's own sidebar. Modes: cursor landing (icons, expands over the page on hover),
@@ -81,12 +141,7 @@ export function AppSidebar({ menu, mobile, showHead, onPreview }: { menu: MenuSe
     setOpen(open === item.id && !onHover ? null : item.id)
   }
 
-  const itemStyle = (active: boolean): CSSProperties => ({
-    ...ty(`${P}-parent`),
-    padding: `${mv(P, 'parent-padY')} ${mv(P, 'parent-padX')}`,
-    background: active ? c('selected') : undefined,
-    color: active ? c('selectedText') : c('text'),
-  })
+  const itemStyle = sidebarItemStyle
 
   return (
     <div className={`sb-slot sb-slot--${mode}`}>

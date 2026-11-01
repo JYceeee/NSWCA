@@ -595,7 +595,7 @@ function PermissionsTab() {
   if (!rows || !draft || !saved) return <p className="muted">Loading…</p>
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved)
-  const cell = (role: (typeof MATRIX_ROLES)[number], key: string): Grant => draft[role][key] ?? false
+  const cell = (role: (typeof MATRIX_ROLES)[number], key: string): Grant => (ADMIN_ONLY_PERMS.has(key) ? false : draft[role][key] ?? false)
   const set = (role: (typeof MATRIX_ROLES)[number], key: string, v: Grant) => setDraft({ ...draft, [role]: { ...draft[role], [key]: v } })
   const changed = (role: (typeof MATRIX_ROLES)[number], key: string) => (saved[role][key] ?? false) !== (draft[role][key] ?? false)
 

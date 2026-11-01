@@ -454,7 +454,7 @@ function save_permissions(): array
     tx(function () use ($in, $rows, $old) {
         foreach (['visitor', 'member', 'arbiter', 'organiser'] as $role) {
             foreach ($rows as $key => $r) {
-                if ($key === 'profile.memberDates' || !array_key_exists($key, $in[$role] ?? [])) continue;
+                if (in_array($key, ADMIN_ONLY_PERMS, true) || !array_key_exists($key, $in[$role] ?? [])) continue;
                 $v = $in[$role][$key];
                 $scope = null;
                 if ($v !== false && $r['scopes']) {
@@ -537,6 +537,7 @@ function decide_approval(): array
         q('UPDATE approvals SET status = ?, reviewed_by = ?, reviewed_at = ?, note = ? WHERE id = ?', [$approve ? 'approved' : 'rejected', my_id(), now(), $note ?: null, $a['id']]);
         $owner = $ev['meta']['createdBy'] ?? null;
         audit($approve ? 'event_approve' : 'event_reject', $owner, $a['kind'] === 'event_new' ? 'event' : 'event change', null, $ev['core']['name'] ?? $a['target_id']);
+        if ($ev && $a['kind'] === 'event_new') mail_event_decision($ev, $approve, $note);
     });
     return list_approvals();
 }

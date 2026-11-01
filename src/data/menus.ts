@@ -23,6 +23,7 @@ export const NAV: NavItem[] = [
   { id: 'byes', label: 'Byes', icon: 'clock', page: 'byes' },
   { id: 'players', label: 'All players', icon: 'users', page: 'players' },
   { id: 'contact', label: 'Contact Us', icon: 'mail', page: 'contact' },
+  { id: 'documents', label: 'Document', icon: 'copy', page: 'documents' },
   { id: 'profile', label: 'Profile', icon: 'user', page: 'profile' },
   {
     id: 'admin',
@@ -32,7 +33,6 @@ export const NAV: NavItem[] = [
       { id: 'brand', label: 'Brand' },
       { id: 'menu', label: 'Menu' },
       { id: 'pages', label: 'Page Config' },
-      { id: 'documents', label: 'Document' },
       { id: 'users', label: 'User management' },
       { id: 'approvals', label: 'Review and approval' },
       { id: 'enquiries', label: 'Enquiries' },
@@ -40,6 +40,24 @@ export const NAV: NavItem[] = [
     ],
   },
 ]
+
+/** The admin portal's side bar. Profile sits at its foot with the account links. */
+export const ADMIN_NAV: { id: PageId; icon: string }[] = [
+  { id: 'approvals', icon: 'check' },
+  { id: 'events', icon: 'calendar' },
+  { id: 'byes', icon: 'clock' },
+  { id: 'players', icon: 'users' },
+  { id: 'brand', icon: 'brand' },
+  { id: 'menu', icon: 'menu' },
+  { id: 'pages', icon: 'grid' },
+  { id: 'documents', icon: 'copy' },
+  { id: 'users', icon: 'user' },
+  { id: 'enquiries', icon: 'info' },
+  { id: 'emails', icon: 'mail' },
+]
+
+/** Pages the admin portal can show. Anything else (Home, Contact Us) belongs to the website tab. */
+export const ADMIN_PAGES: PageId[] = [...ADMIN_NAV.map((n) => n.id), 'profile']
 
 /** Every full page, in menu order. */
 export const PAGES: NavChild[] = NAV.flatMap((n) => (n.page ? [{ id: n.page, label: n.label }] : n.children ?? []))

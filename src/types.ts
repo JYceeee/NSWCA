@@ -480,6 +480,9 @@ export interface PageHeadConfig {
   height: number
 }
 
+/** A Brand › Typography row chosen in Page Config. Empty = the section's own look. */
+export type TextStyleId = string | null
+
 export interface GalleryItem {
   id: string
   title: string
@@ -508,12 +511,21 @@ interface SectionBase {
   /** px above the title / below the last element. null = the section's standard spacing. */
   spaceTop: number | null
   spaceBottom: number | null
+  /** The section's heading. */
+  titleStyle?: TextStyleId
+}
+
+/** One choice for all of a section's points (cards, projects, list columns). */
+interface PointStyles {
+  itemTitleStyle?: TextStyleId
+  itemTextStyle?: TextStyleId
 }
 
 export interface HeroSection extends SectionBase {
   kind: 'hero'
   title: string
   text: string
+  textStyle?: TextStyleId
   image: PageImage
   /** Fills the window; off = `height`. */
   fullWindow: boolean
@@ -522,25 +534,29 @@ export interface HeroSection extends SectionBase {
   buttons: PageButton[]
 }
 
-export interface GallerySection extends SectionBase {
+export interface GallerySection extends SectionBase, PointStyles {
   kind: 'gallery'
   title: string
   text: string
+  textStyle?: TextStyleId
   height: number
   items: GalleryItem[]
 }
 
-export interface EmphasisSection extends SectionBase {
+export interface EmphasisSection extends SectionBase, PointStyles {
   kind: 'emphasis'
   title: string
   image: PageImage
   height: number
+  /** Points in one row. */
+  perRow: number
   items: EmphasisItem[]
   button: PageButton
 }
 
-export interface ProjectsSection extends SectionBase {
+export interface ProjectsSection extends SectionBase, PointStyles {
   kind: 'projects'
+  itemLabelStyle?: TextStyleId
   title: string
   height: number
   /** px the sliding panel stops from the image's left edge. */
@@ -562,7 +578,7 @@ export interface ListColumn {
   cells: ListCell[]
 }
 
-export interface ListSection extends SectionBase {
+export interface ListSection extends SectionBase, PointStyles {
   kind: 'list'
   title: string
   showTitle: boolean

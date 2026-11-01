@@ -4,6 +4,8 @@ import { Modal, useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
 import { ROLE_LABEL } from '../data/permissions'
 import { apiPost } from '../lib/api'
+import { goToPortal, IS_SITE_TAB, useAdminPortal } from '../layout/useNav'
+import { sidebarItemStyle } from '../layout/Sidebar'
 import { useBrand, useSession } from '../store/BrandStore'
 
 /** A password reset / welcome link (#reset/<token>), read before the app replaces the address. */
@@ -23,6 +25,10 @@ export function AccountBar({ inTopBar }: { inTopBar: boolean }) {
   // With the top bar on, the buttons sit in it (see #tb-account in TopBar).
   const [slot, setSlot] = useState<HTMLElement | null>(null)
   useEffect(() => setSlot(inTopBar ? document.getElementById('tb-account') : null), [inTopBar])
+  // In the admin portal they sit at the foot of the side bar.
+  const portal = useAdminPortal()
+  const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null)
+  useEffect(() => setSideSlot(portal ? document.getElementById('sb-account') : null), [portal])
 
   const logout = async () => {
     setMenu(false)
@@ -49,7 +55,7 @@ export function AccountBar({ inTopBar }: { inTopBar: boolean }) {
   const controls = user ? (
     <>
       <div className="acct-menu" ref={ref}>
-        <button className={slot ? pill(false) : 'ui-btn ui-btn--small acct-user'} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
+        <button className={slot ? pill(false) : 'ui-btn ui-btn--small acct-user'} aria-haspopup="menu" aria-expanded={menu} onClick={() => (user.role === 'admin' && slot ? goToPortal() : setMenu(!menu))}>
           {slot ? (
             'My Account'
           ) : (
@@ -119,13 +125,40 @@ export function AccountBar({ inTopBar }: { inTopBar: boolean }) {
       {status === 'loading' && <span className="muted small">Loading…</span>}
       {session.syncing && <span className="muted small">Saving…</span>}
       <span className="acct-spacer" />
-      {slot ? createPortal(controls, slot) : controls}
+      {portal ? sideSlot && user && createPortal(<PortalAccount name={user.name} onPassword={() => setDialog('password')} onLogout={logout} />, sideSlot) : slot ? createPortal(controls, slot) : controls}
       {dialog === 'login' && <LoginDialog onClose={() => setDialog(null)} onGo={setDialog} />}
       {dialog === 'register' && <RegisterDialog onClose={() => setDialog(null)} />}
       {dialog === 'forgot' && <ForgotDialog onClose={() => setDialog(null)} />}
       {dialog === 'reset' && RESET_TOKEN && <ResetDialog token={RESET_TOKEN} onClose={() => setDialog(null)} onDone={() => setDialog('login')} />}
       {dialog === 'password' && <PasswordDialog onClose={() => setDialog(null)} />}
     </div>
+  )
+}
+
+/** The foot of the admin portal's side bar. */
+function PortalAccount({ name, onPassword, onLogout }: { name: string; onPassword: () => void; onLogout: () => void }) {
+  const { ui, navigate } = useBrand()
+  const item = (icon: string, label: string, onClick: () => void, active = false) => (
+    <button className={active ? 'app-menu-item is-active' : 'app-menu-item'} style={sidebarItemStyle(active)} onClick={onClick}>
+      <span className="sb-icon">
+        <Icon name={icon} size={18} />
+      </span>
+      <span className="sb-label">{label}</span>
+    </button>
+  )
+  return (
+    <>
+      <div className="sb-account-name sb-label">{name}</div>
+      {item('user', 'Profile', () => navigate({ page: 'profile' }), ui.page === 'profile')}
+      {item('settings', 'Change password', onPassword)}
+      <a className="app-menu-item" style={sidebarItemStyle(false)} href={`${window.location.pathname}?site=1#home`} target="_blank" rel="noopener">
+        <span className="sb-icon">
+          <Icon name="link" size={18} />
+        </span>
+        <span className="sb-label">View website</span>
+      </a>
+      {item('x', 'Sign out', onLogout)}
+    </>
   )
 }
 
@@ -179,6 +212,7 @@ function FormError({ error }: { error: string }) {
 
 function LoginDialog({ onClose, onGo }: { onClose: () => void; onGo: (d: Dialog) => void }) {
   const session = useSession()
+  const { navigate } = useBrand()
   const { toast } = useDialogs()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
@@ -187,7 +221,11 @@ function LoginDialog({ onClose, onGo }: { onClose: () => void; onGo: (d: Dialog)
     <Modal title="Sign in" onClose={onClose} width={420}>
       <form
         onSubmit={run(async () => {
-          await session.login(login.trim(), password)
+          const who = await session.login(login.trim(), password)
+          if (who?.role === 'admin') {
+            if (IS_SITE_TAB) return goToPortal()
+            navigate({ page: 'approvals' })
+          }
           toast('Signed in')
           onClose()
         })}
