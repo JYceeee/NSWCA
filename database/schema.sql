@@ -210,6 +210,8 @@ CREATE TABLE IF NOT EXISTS players (
   acf_rating     VARCHAR(8)   NOT NULL DEFAULT '',
   email          VARCHAR(191) NOT NULL DEFAULT '',
   added_at       VARCHAR(32)  NOT NULL DEFAULT '',
+  -- ISO time last edited in All players ('' = not since it was added).
+  updated_at     VARCHAR(32)  NOT NULL DEFAULT '',
   sort_order     INT          NOT NULL DEFAULT 0,
   KEY ix_players_email (email),
   KEY ix_players_name (last_name, first_name)
@@ -250,6 +252,8 @@ CREATE TABLE IF NOT EXISTS event_divisions (
   event_id      VARCHAR(64)  NOT NULL,
   name          VARCHAR(100) NOT NULL DEFAULT '',
   rating_range  VARCHAR(64)  NOT NULL DEFAULT '',
+  -- Results kept on another website.
+  results_url   VARCHAR(500) NOT NULL DEFAULT '',
   sort_order    INT          NOT NULL DEFAULT 0,
   PRIMARY KEY (event_id, id),
   CONSTRAINT fk_divisions_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
@@ -280,6 +284,8 @@ CREATE TABLE IF NOT EXISTS event_entries (
   fide_blitz     VARCHAR(8)   NOT NULL DEFAULT '',
   acf_rating     VARCHAR(8)   NOT NULL DEFAULT '',
   fed            VARCHAR(3)   NOT NULL DEFAULT '',
+  -- Australian state code, e.g. NSW (shown in Fed on the results).
+  state          VARCHAR(3)   NOT NULL DEFAULT '',
   dob            DATE         NULL,
   gender         VARCHAR(32)  NOT NULL DEFAULT '',
   title          VARCHAR(8)   NOT NULL DEFAULT '',
@@ -313,22 +319,27 @@ CREATE TABLE IF NOT EXISTS event_byes (
   CONSTRAINT fk_byes_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- One round of pairings (uploaded from Vega / Swiss-Manager or generated with Gacrux).
+-- One round of pairings in a division ('' = the tournament has none), imported from Vega / Swiss-Manager.
 CREATE TABLE IF NOT EXISTS pairing_rounds (
   event_id     VARCHAR(64)  NOT NULL,
+  division_id  VARCHAR(64)  NOT NULL DEFAULT '',
   round_no     INT UNSIGNED NOT NULL,
   title        VARCHAR(191) NOT NULL DEFAULT '',
   file_name    VARCHAR(191) NOT NULL DEFAULT '',
   released_at  VARCHAR(32)  NOT NULL DEFAULT '',
+  -- When the round's results were last released ('' = not yet).
+  results_released_at VARCHAR(32) NOT NULL DEFAULT '',
   is_generated TINYINT(1)   NOT NULL DEFAULT 0,
-  PRIMARY KEY (event_id, round_no),
+  PRIMARY KEY (event_id, division_id, round_no),
   CONSTRAINT fk_rounds_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Boards of a round. black_* are NULL for a bye.
 -- result: "1 - 0", "½ - ½", "0 - 1", "+ - -" / "- - +" (forfeits), "" = not played yet.
+-- result is the working copy; released_result is what the public sees, copied from it on Release.
 CREATE TABLE IF NOT EXISTS pairing_boards (
   event_id         VARCHAR(64)  NOT NULL,
+  division_id      VARCHAR(64)  NOT NULL DEFAULT '',
   round_no         INT UNSIGNED NOT NULL,
   board_no         INT UNSIGNED NOT NULL,
   white_entry_id   VARCHAR(64)  NULL,
@@ -336,19 +347,22 @@ CREATE TABLE IF NOT EXISTS pairing_boards (
   white_title      VARCHAR(8)   NOT NULL DEFAULT '',
   white_name       VARCHAR(191) NOT NULL DEFAULT '',
   white_fed        VARCHAR(3)   NOT NULL DEFAULT '',
+  white_rating     VARCHAR(8)   NOT NULL DEFAULT '',
   white_pts        VARCHAR(8)   NOT NULL DEFAULT '',
   black_entry_id   VARCHAR(64)  NULL,
   black_sno        VARCHAR(8)   NULL,
   black_title      VARCHAR(8)   NULL,
   black_name       VARCHAR(191) NULL,
   black_fed        VARCHAR(3)   NULL,
+  black_rating     VARCHAR(8)   NULL,
   black_pts        VARCHAR(8)   NULL,
   result           VARCHAR(16)  NOT NULL DEFAULT '',
+  released_result  VARCHAR(16)  NOT NULL DEFAULT '',
   bye_kind         ENUM('pab','half','zero') NULL,
   -- Set when the result was filled in because a player's account was disabled.
   auto_forfeit     TINYINT(1)   NOT NULL DEFAULT 0,
-  PRIMARY KEY (event_id, round_no, board_no),
-  CONSTRAINT fk_boards_round FOREIGN KEY (event_id, round_no) REFERENCES pairing_rounds (event_id, round_no) ON DELETE CASCADE
+  PRIMARY KEY (event_id, division_id, round_no, board_no),
+  CONSTRAINT fk_boards_round FOREIGN KEY (event_id, division_id, round_no) REFERENCES pairing_rounds (event_id, division_id, round_no) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------- Review and approval ----------

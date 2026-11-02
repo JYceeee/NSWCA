@@ -13,17 +13,30 @@ import { duplicatePalette, PaletteSwitcher } from './PaletteTab'
 import { NewItemDialog, SaveBar } from './shared'
 import { NumberField } from './TypographyTab'
 
+/** The headings the components are listed under, in order. */
+const CATEGORIES: { label: string; kinds: ComponentDef['kind'][] }[] = [
+  { label: 'Button', kinds: ['button'] },
+  { label: 'Pill', kinds: ['pill'] },
+  { label: 'Tables', kinds: ['table'] },
+  { label: 'Others', kinds: ['card', 'section', 'darkBand', 'link', 'sidebar', 'formField'] },
+]
+
 export function ComponentsTab() {
   const palette = useSelected('palettes')
   const typo = useApplied('typography')
   const { update, focus } = useBrand()
   const { confirm } = useDialogs()
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+  /** Group headings whose components are showing (all start collapsed). */
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set())
   const [newFrom, setNewFrom] = useState<string | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
 
   useEffect(() => {
     if (focus?.kind !== 'component') return
+    const kind = COMPONENTS.find((c) => c.id === focus.id)?.kind
+    const group = CATEGORIES.find((g) => kind && g.kinds.includes(kind))?.label
+    if (group) setOpenGroups((s) => new Set(s).add(group))
     setExpanded((s) => new Set(s).add(focus.id))
     setFlash(focus.id)
     setTimeout(() => document.getElementById(`comp-${focus.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
@@ -63,59 +76,77 @@ export function ComponentsTab() {
           Editing components of <strong>{palette.name}</strong>. Each palette keeps its own component settings. Colours follow a palette token unless you pick
           a custom colour.
         </p>
-        <div className="comp-intro-actions">
-          <button className="ui-btn" onClick={() => setExpanded(new Set(COMPONENTS.map((c) => c.id)))}>Expand all</button>
-          <button className="ui-btn" onClick={() => setExpanded(new Set())}>Collapse all</button>
-        </div>
       </div>
       <ThemeScope palette={palette} typo={typo} className="comp-list">
-        {COMPONENTS.map((c) => {
-          const open = expanded.has(c.id)
+        {CATEGORIES.map((cat) => {
+          const items = COMPONENTS.filter((c) => cat.kinds.includes(c.kind))
+          // One click on the heading shows or hides the group's components.
+          const shown = openGroups.has(cat.label)
+          const toggleGroup = () =>
+            setOpenGroups((s) => {
+              const n = new Set(s)
+              if (shown) n.delete(cat.label)
+              else n.add(cat.label)
+              return n
+            })
           return (
-            <section key={c.id} id={`comp-${c.id}`} className={['comp', open && 'comp--open', flash === c.id && 'comp--flash'].filter(Boolean).join(' ')}>
-              <div className="comp-head" onClick={() => toggle(c.id)} role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle(c.id)} aria-expanded={open}>
-                <span className="comp-caret">
-                  <Icon name={open ? 'chevronDown' : 'chevron'} size={14} />
-                </span>
-                <strong>{c.name}</strong>
-                <span className="comp-desc">{c.description}</span>
-                <span className="comp-sample" onClick={(e) => e.stopPropagation()}>
-                  <Sample c={c} small />
-                </span>
-              </div>
-              {open && (
-                <div className="comp-body">
-                  <div className="comp-fields">
-                    {c.groups.map((g, gi) => (
-                      <div key={gi} className="field-group">
-                        {g.label && <div className="field-group-label">{g.label}</div>}
-                        {g.fields.map((f) => (
-                          <FieldRow
-                            key={f.key}
-                            f={f}
-                            palette={palette}
-                            typoRows={typo.rows}
-                            value={getField(palette, c.id, f.key)}
-                            def={fieldDefault(palette, c.id, f.key)}
-                            onChange={(val) => setField(c.id, f.key, val)}
-                            onReset={() => resetField(c.id, f.key)}
-                          />
-                        ))}
-                      </div>
-                    ))}
-                    <button className="ui-btn" onClick={() => resetComponent(c)}>
-                      <Icon name="reset" size={14} /> Reset {c.name.toLowerCase()}
-                    </button>
-                  </div>
-                  <div className="comp-live">
-                    <div className="comp-live-label">Live sample</div>
-                    <div className="comp-live-stage" style={{ background: 'var(--t-bg)' }}>
-                      <Sample c={c} />
+            <div key={cat.label} className="comp-group">
+              <h3 className="comp-group-head">
+                <button onClick={toggleGroup} aria-expanded={shown}>
+                  <Icon name={shown ? 'chevronDown' : 'chevron'} size={14} />
+                  {cat.label}
+                </button>
+              </h3>
+              {shown && items.map((c) => {
+                const open = expanded.has(c.id)
+                return (
+                  <section key={c.id} id={`comp-${c.id}`} className={['comp', open && 'comp--open', flash === c.id && 'comp--flash'].filter(Boolean).join(' ')}>
+                    <div className="comp-head" onClick={() => toggle(c.id)} role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle(c.id)} aria-expanded={open}>
+                      <span className="comp-caret">
+                        <Icon name={open ? 'chevronDown' : 'chevron'} size={14} />
+                      </span>
+                      <strong>{c.name}</strong>
+                      <span className="comp-desc">{c.description}</span>
+                      <span className="comp-sample" onClick={(e) => e.stopPropagation()}>
+                        <Sample c={c} small />
+                      </span>
                     </div>
-                  </div>
-                </div>
-              )}
-            </section>
+                    {open && (
+                      <div className="comp-body">
+                        <div className="comp-fields">
+                          {c.groups.map((g, gi) => (
+                            <div key={gi} className="field-group">
+                              {g.label && <div className="field-group-label">{g.label}</div>}
+                              {g.fields.map((f) => (
+                                <FieldRow
+                                  key={f.key}
+                                  f={f}
+                                  palette={palette}
+                                  typoRows={typo.rows}
+                                  value={getField(palette, c.id, f.key)}
+                                  def={fieldDefault(palette, c.id, f.key)}
+                                  onChange={(val) => setField(c.id, f.key, val)}
+                                  onReset={() => resetField(c.id, f.key)}
+                                />
+                              ))}
+                            </div>
+                          ))}
+                          <button className="ui-btn" onClick={() => resetComponent(c)}>
+                            <Icon name="reset" size={14} /> Reset {c.name.toLowerCase()}
+                          </button>
+                        </div>
+                        <div className="comp-live">
+                          <div className="comp-live-label">Live sample</div>
+                          <div className="comp-live-stage" style={{ background: 'var(--t-bg)' }}>
+                            <Sample c={c} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                )
+              })}
+            </div>
           )
         })}
       </ThemeScope>
@@ -167,6 +198,15 @@ function Sample({ c, small }: { c: ComponentDef; small?: boolean }) {
       return <DsLink>A link to somewhere</DsLink>
     case 'sidebar':
       return small ? <span className="mini-card" style={{ background: 'var(--sidebar-bg)' }} /> : <SidebarMock />
+    case 'table':
+      return small ? (
+        <span className="mini-card mini-table" style={{ background: `var(--${c.id}-bodyBg)`, borderColor: `var(--${c.id}-border)`, borderRadius: `var(--${c.id}-radius)` }}>
+          <span style={{ background: `var(--${c.id}-headerBg)` }} />
+          <span style={{ background: c.id === 'stripedTable' ? 'var(--stripedTable-stripeBg)' : undefined }} />
+        </span>
+      ) : (
+        <TableSample id={c.id} />
+      )
     case 'formField':
       return small ? (
         <span className="mini-card" style={{ background: 'var(--formField-inputBg)', border: 'var(--formField-selectBorderWidth) solid var(--formField-selectBorder)', borderRadius: 'var(--formField-radius)' }} />
@@ -174,6 +214,49 @@ function Sample({ c, small }: { c: ComponentDef; small?: boolean }) {
         <DsFieldSample />
       )
   }
+}
+
+/** Sample rows like the pages each table is used on. */
+function TableSample({ id }: { id: string }) {
+  if (id === 'plainTable')
+    return (
+      <table className="tbl-plain">
+        <thead>
+          <tr><th>Round</th><th>Date</th><th>Time</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Round 1</td><td>Mon 26 Oct 2026</td><td>7:00 PM</td></tr>
+          <tr><td>Round 2</td><td>Mon 2 Nov 2026</td><td>7:00 PM</td></tr>
+          <tr><td>Round 3</td><td>Mon 9 Nov 2026</td><td>7:00 PM</td></tr>
+        </tbody>
+      </table>
+    )
+  if (id === 'borderedTable')
+    return (
+      <table className="tbl-bordered">
+        <thead>
+          <tr><th>Tournament</th><th>Results Link</th></tr>
+        </thead>
+        <tbody>
+          <tr className="tbl-group"><th colSpan={2}>2026 NSWCA October Weekender</th></tr>
+          <tr><td>Open</td><td><a href="#">Results</a></td></tr>
+          <tr><td>Under 1600</td><td><a href="#">Results</a></td></tr>
+        </tbody>
+      </table>
+    )
+  return (
+    <table className="tbl-striped">
+      <thead>
+        <tr><th>Pos</th><th>Player</th><th>Rtg</th><th>Fed</th><th>Pts</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Keating, Jack</td><td>1829</td><td>NSW</td><td>5.0</td></tr>
+        <tr><td>2</td><td>Dekic, Biljana N</td><td>1823</td><td>NSW</td><td>4.5</td></tr>
+        <tr><td>3</td><td>Menzies, Damien</td><td>1612</td><td>ACT</td><td>4.0</td></tr>
+        <tr><td>4</td><td>Hemsley, Steven E</td><td>1419</td><td>QLD</td><td>3.5</td></tr>
+      </tbody>
+    </table>
+  )
 }
 
 interface FieldRowProps {

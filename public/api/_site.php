@@ -27,6 +27,8 @@ function player_out(array $r): array
 {
     $p = ['id' => $r['id']];
     foreach (PLAYER_COLS as $k => $col) $p[$k] = (string) ($r[$col] ?? '');
+    // Set by the server when a player is edited, so it isn't part of what the app sends back.
+    $p['updated'] = (string) ($r['updated_at'] ?? '');
     return $p;
 }
 
@@ -42,12 +44,14 @@ function players_all(): array
     return array_map('player_out', rows('SELECT * FROM players ORDER BY sort_order, last_name, first_name'));
 }
 
-function save_player(array $p, int $sort): void
+/** $touch: record this as the player's last update (not when importing a browser's data). */
+function save_player(array $p, int $sort, bool $touch = true): void
 {
     $vals = [$p['id']];
     foreach (PLAYER_COLS as $k => $col) $vals[] = $k === 'dob' ? sql_date($p[$k]) : ($k === 'fed' ? substr($p[$k], 0, 3) : $p[$k]);
     $vals[] = $sort;
-    $cols = ['id', ...array_values(PLAYER_COLS), 'sort_order'];
+    $vals[] = $touch ? gmdate('Y-m-d\TH:i:s\Z') : '';
+    $cols = ['id', ...array_values(PLAYER_COLS), 'sort_order', 'updated_at'];
     $set = implode(', ', array_map(fn($c) => "$c = VALUES($c)", array_slice($cols, 1)));
     q('INSERT INTO players (' . implode(', ', $cols) . ') VALUES (' . implode(', ', array_fill(0, count($cols), '?')) . ") ON DUPLICATE KEY UPDATE $set", $vals);
 }
@@ -424,6 +428,7 @@ function state(): array
             ...($view ? ['view' => $view] : []),
         ],
         'pages' => $pages,
+        'siteVersion' => setting('site_version'),
         'playersVisible' => $sawPlayers,
         'profile' => $me ? profile_out($me['id']) : null,
         'documents' => documents_for_me(),
@@ -467,7 +472,7 @@ function import_state(): array
                 $count['categories']++;
             }
             foreach (array_values(array_filter((array) ($book['players'] ?? []), 'is_array')) as $i => $p) {
-                save_player(norm_player($p), $i + 1);
+                save_player(norm_player($p), $i + 1, false);
                 $count['players']++;
             }
             foreach (array_filter((array) ($book['events'] ?? []), 'is_array') as $e) {

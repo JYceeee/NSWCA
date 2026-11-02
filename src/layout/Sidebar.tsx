@@ -26,7 +26,7 @@ export const sidebarItemStyle = (active: boolean): CSSProperties => ({
  * The admin portal's side bar: always open on desktop, a drawer on phones. The menu's look, its own pages.
  * AccountBar fills #sb-account.
  */
-export function AdminSidebar({ onPreview }: { onPreview?: () => void }) {
+export function AdminSidebar() {
   const { ui, navigate } = useBrand()
   const { pendingApprovals } = useSession()
   const logos = useApplied('logos')
@@ -59,14 +59,6 @@ export function AdminSidebar({ onPreview }: { onPreview?: () => void }) {
           ))}
         </nav>
         <div className="sb-account" style={{ borderTop: `1px solid ${c('divider')}`, color: c('smallText') }}>
-          {onPreview && (
-            <button className="app-menu-item sb-account-preview" style={sidebarItemStyle(false)} onClick={onPreview}>
-              <span className="sb-icon">
-                <Icon name="phone" size={18} />
-              </span>
-              <span className="sb-label">Preview mobile</span>
-            </button>
-          )}
           <div id="sb-account" className="sb-account-list" />
         </div>
       </aside>
@@ -79,7 +71,7 @@ export function AdminSidebar({ onPreview }: { onPreview?: () => void }) {
  * fix (always expanded) and icon only. Sub tabs open in a small window on hover or click.
  * On mobile it is a drawer with sub tabs listed inline.
  */
-export function AppSidebar({ menu, mobile, showHead, onPreview }: { menu: MenuSet; mobile: boolean; showHead: boolean; onPreview?: () => void }) {
+export function AppSidebar({ menu, mobile, showHead }: { menu: MenuSet; mobile: boolean; showHead: boolean }) {
   const { ui, navigate } = useBrand()
   const logos = useApplied('logos')
   const nav = useVisibleNav()
@@ -232,16 +224,6 @@ export function AppSidebar({ menu, mobile, showHead, onPreview }: { menu: MenuSe
             )
           })}
         </nav>
-        {onPreview && (
-          <div className="sb-preview">
-            <button className="app-menu-item" style={itemStyle(false)} title={wide ? undefined : 'Preview mobile'} onClick={onPreview}>
-              <span className="sb-icon">
-                <Icon name="phone" size={18} />
-              </span>
-              <span className="sb-label">Preview mobile</span>
-            </button>
-          </div>
-        )}
         {wide && (
           <div className="app-sidebar-foot sb-label" style={{ borderTop: `1px solid ${c('divider')}`, color: c('smallText') }}>
             Saved in this browser

@@ -10,9 +10,14 @@ require __DIR__ . '/_users.php';
 require __DIR__ . '/_site.php';
 require __DIR__ . '/_emails.php';
 
+// Saving through these changes what open pages show: they see the new site_version and fetch the state again.
+const CONTENT_ROUTES = ['design.put', 'design.delete', 'settings.put', 'categories.put', 'event.put', 'event.delete', 'event.arbiters', 'players.put',
+    'documents.add', 'documents.delete', 'import', 'perms.put', 'approvals.decide', 'users.approve', 'users.reject'];
+
 $routes = [
     // Signing in
     'state' => ['GET', fn() => state()],
+    'version' => ['GET', fn() => ['version' => setting('site_version')]],
     'login' => ['POST', fn() => login()],
     'logout' => ['POST', fn() => logout()],
     'register' => ['POST', fn() => register()],
@@ -74,7 +79,9 @@ try {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     if ($method !== $route[0]) fail(405, "Use $route[0] for $a.");
     if ($method === 'POST' && ($_SERVER['HTTP_X_PRINCIPLES'] ?? '') !== '1') fail(403, 'Missing request header.');
-    send($route[1]());
+    $answer = $route[1]();
+    if (in_array($a, CONTENT_ROUTES, true)) put_setting('site_version', (int) (microtime(true) * 1000));
+    send($answer);
 } catch (HttpError $e) {
     send(['error' => $e->getMessage(), ...$e->extra], $e->status);
 } catch (JsonException) {

@@ -5,6 +5,7 @@
     "Upcoming events",
     "Tournament entries",
     "Byes",
+    "Results",
     "All players",
     "Profile",
     "Brand",
@@ -40,6 +41,9 @@
 
     { "key": "page.byes", "group": "Byes", "label": "Open page", "d": [false, true, true, true] },
     { "key": "byes.manage", "group": "Byes", "label": "Add, change and cancel byes", "scopes": ["all", "assigned"], "d": [false, false, "assigned", false] },
+
+    { "key": "page.results", "group": "Results", "label": "Open page", "d": [true, true, true, true] },
+    { "key": "results.manage", "group": "Results", "label": "Enter and release results", "scopes": ["all", "own", "assigned"], "d": [false, false, "assigned", "own"] },
 
     { "key": "page.players", "group": "All players", "label": "Open page", "d": [false, false, false, true] },
     { "key": "players.add", "group": "All players", "label": "Add player", "d": [false, false, false, false] },

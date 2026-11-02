@@ -31,7 +31,7 @@ export interface Hint {
 }
 const hintAttrs = (h?: Hint) => (h ? { 'data-tokens': h.tokens, 'data-target': h.target } : {})
 
-export type ButtonId = 'btnPrimary' | 'btnSecondary' | 'btnSoft' | 'btnDanger'
+export type ButtonId = 'btnPrimary' | 'btnSecondary' | 'btnOutline' | 'btnSoft' | 'btnDanger'
 
 export function DsButton({ id, state, label, hint }: { id: ButtonId; state?: 'hover' | 'pressed' | 'disabled'; label?: string; hint?: Hint }) {
   const text = useLabel(id)
@@ -56,7 +56,7 @@ export function DsButton({ id, state, label, hint }: { id: ButtonId; state?: 'ho
   )
 }
 
-export type PillId = 'pillNeutral' | 'pillSuccess' | 'pillWarning' | 'pillDanger'
+export type PillId = 'pillNeutral' | 'pillSuccess' | 'pillWarning' | 'pillDanger' | 'pillTitle'
 
 export function DsPill({ id, label, hint }: { id: PillId; label?: string; hint?: Hint }) {
   const text = useLabel(id)

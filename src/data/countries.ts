@@ -101,3 +101,16 @@ export const fedCode = (citizenship: string) => (citizenship ? fedForCountry(cit
 export const fedForCountry = (country: string) => (country === 'GB' ? 'ENG' : FEDERATIONS.find((f) => f.country === country)?.code ?? '')
 
 export const AU_STATES =['Australian Capital Territory', 'New South Wales', 'Northern Territory', 'Queensland', 'South Australia', 'Tasmania', 'Victoria', 'Western Australia']
+
+const AU_STATE_CODES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA']
+
+/** "New South Wales" → "NSW"; '' when it isn't an Australian state. */
+export const auStateCode = (state: string) => AU_STATE_CODES[AU_STATES.indexOf(state)] ?? (AU_STATE_CODES.includes(state.toUpperCase()) ? state.toUpperCase() : '')
+
+const UK_FLAGS: Record<string, string> = { ENG: 'gb-eng', SCO: 'gb-sct', WLS: 'gb-wls' }
+
+/** Flag image code (lower-case ISO) for a federation or Australian state; '' when unknown. */
+export function flagCode(fed: string) {
+  if (AU_STATE_CODES.includes(fed)) return 'au'
+  return UK_FLAGS[fed] ?? FEDERATIONS.find((f) => f.code === fed)?.country.toLowerCase() ?? ''
+}

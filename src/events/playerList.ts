@@ -93,7 +93,7 @@ export function playerStatus(p: Player, book: EventBook, profileEmail: string): 
 
 const SEX: Record<string, string> = { M: 'Male', F: 'Female' }
 /** Player fields and the profile fields they show up as. */
-const TO_PROFILE: [keyof Player, keyof Profile][] = [
+const TO_PROFILE: [Exclude<keyof Player, 'updated'>, keyof Profile][] = [
   ['lastName', 'lastName'], ['firstName', 'firstName'], ['dob', 'dob'], ['gender', 'sex'], ['fed', 'federation'], ['title', 'title'], ['fideId', 'fideId'],
   ['kFide', 'kFide'], ['fideStandard', 'fideStandard'], ['fideRapid', 'fideRapid'], ['fideBlitz', 'fideBlitz'], ['acfId', 'acfId'], ['acfRating', 'acfRating'], ['email', 'email'],
 ]

@@ -2,6 +2,7 @@ import { format } from 'date-fns'
 import { useEffect, useMemo, useState } from 'react'
 import { useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
+import { TitlePill } from '../components/TitlePill'
 import { detailsOf } from '../data/eventDetails'
 import { dateRangeLabel } from '../data/events'
 import { useBrand, useSession } from '../store/BrandStore'
@@ -246,7 +247,7 @@ export function EntriesPage({ id }: { id: string }) {
       </div>
 
       <div className="ae-wrap">
-        <table className="ae-table">
+        <table className="ae-table tbl-striped tbl-own-size">
           <thead>
             <tr>
               <th className="ae-tick">
@@ -318,7 +319,7 @@ export function EntriesPage({ id }: { id: string }) {
                     )}
                   </td>
                   <td>{pick('gender', ['M', 'F'])}</td>
-                  <td>{pick('title', TITLES.slice(0, 8))}</td>
+                  <td>{editable || !x.title ? pick('title', TITLES.slice(0, 8)) : <TitlePill title={x.title} />}</td>
                   <td>{text('fideId', '96px')}</td>
                   <td>{pick('kFide', ['10', '20', '40'])}</td>
                   <td>{text('fideStandard', '64px')}</td>

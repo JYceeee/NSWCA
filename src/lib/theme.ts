@@ -93,11 +93,15 @@ export function buildThemeVars(p: Palette, typo: TypographySet): Record<string, 
         if (f.type === 'color') vars[name] = resolveColor(v as ColorRef, p.tokens)
         else if (f.type === 'number') vars[name] = `${v}px`
         else if (f.type === 'select' && f.key === 'shadow') vars[name] = SHADOWS[v as string] ?? 'none'
+        else if (f.type === 'select') vars[name] = String(v)
         else if (f.type === 'textStyle') {
           const row = findRow(typo, v as string)
-          const size = getField(p, c.id, 'sizeOverride') as number | null
-          const weight = getField(p, c.id, 'weightOverride') as number | null
-          Object.assign(vars, textVars(`${c.id}-${f.key}`, row, size, weight))
+          // Its own size and style (tables, one per text) or the component's overrides.
+          const size = (getField(p, c.id, `${f.key}Size`) ?? getField(p, c.id, 'sizeOverride')) as number | null
+          const look = (getField(p, c.id, `${f.key}Look`) ?? 'font') as string
+          const weight = look === 'font' ? (getField(p, c.id, 'weightOverride') as number | null) : look === 'bold' || look === 'boldItalic' ? 700 : 400
+          const styled = look === 'font' ? row : { ...row, italic: look === 'italic' || look === 'boldItalic' }
+          Object.assign(vars, textVars(`${c.id}-${f.key}`, styled, size, weight))
         }
       }
     }

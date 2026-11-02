@@ -1,9 +1,8 @@
+import { format } from 'date-fns'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Modal, useDialogs } from '../components/Dialogs'
 import { PageHead } from '../site/PageHead'
 import { Icon } from '../components/Icon'
-import { dateRangeLabel } from '../data/events'
-import { detailsOf } from '../data/eventDetails'
 import { dmy, entryFields, findPlayer, fullName, playerStatus, profileChanges, searchPlayers, STATUS_LABEL } from '../events/playerList'
 import { emptyProfile } from '../profile/ProfilePage'
 import { checkDraft, draftOf, PlayerFields, type PlayerDetails, type PlayerDraft } from '../events/PlayerFields'
@@ -37,6 +36,12 @@ const enteredIn = (book: EventBook, id: string) =>
 
 
 /** Admin › All players: every player's details in one place. */
+/** When the player was last edited, or added if never since. */
+const lastUpdate = (p: Player) => {
+  const at = p.updated || p.added
+  return at ? format(new Date(at), 'd MMM yyyy, h:mm a') : <span className="muted">—</span>
+}
+
 export function AllPlayersPage() {
   const { book, commit, players } = usePlayers()
   const { confirm, toast } = useDialogs()
@@ -44,7 +49,7 @@ export function AllPlayersPage() {
   const { saved } = useBrand()
   const statusOf = (p: Player) => playerStatus(p, book, saved.profile?.email ?? '')
   const [query, setQuery] = useState('')
-  const [dialog, setDialog] = useState<{ kind: 'view' | 'edit'; player: Player } | { kind: 'new' } | null>(null)
+  const [dialog, setDialog] = useState<{ kind: 'edit'; player: Player } | { kind: 'new' } | null>(null)
   const rows = searchPlayers(players, query)
   /** Ticked rows (player ids). */
   const [ticked, setTicked] = useState<Set<string>>(new Set())
@@ -152,7 +157,7 @@ export function AllPlayersPage() {
       </div>
 
       <div className="ae-wrap">
-        <table className="ae-table ap-table">
+        <table className="ae-table ap-table tbl-striped tbl-own-size">
           <thead>
             <tr>
               <th className="ae-tick">
@@ -172,7 +177,7 @@ export function AllPlayersPage() {
                   }
                 />
               </th>
-              {['Last name', 'First name', 'DOB', 'Gender', 'FIDE ID', 'ACF ID', 'Status', 'Action'].map((h) => (
+              {['Last name', 'First name', 'DOB', 'Gender', 'Federation', 'Email', 'FIDE ID', 'ACF ID', 'Status', 'Last update', 'Action'].map((h) => (
                 <th key={h}>
                   <span className="ae-sort">{h}</span>
                 </th>
@@ -185,31 +190,33 @@ export function AllPlayersPage() {
                 <td className="ae-tick">
                   <input type="checkbox" aria-label={`Tick ${fullName(p)}`} checked={ticked.has(p.id)} onChange={() => toggle(p.id)} />
                 </td>
-                <td className="ap-last">{p.lastName}</td>
+                <td>{p.lastName}</td>
                 <td>{p.firstName || <span className="muted">—</span>}</td>
                 <td>{dmy(p.dob) || <span className="muted">—</span>}</td>
                 <td>{p.gender || <span className="muted">—</span>}</td>
+                <td>{p.fed || <span className="muted">—</span>}</td>
+                <td>{p.email || <span className="muted">—</span>}</td>
                 <td>{p.fideId || <span className="muted">—</span>}</td>
                 <td>{p.acfId || <span className="muted">—</span>}</td>
                 <td>
                   <span className={`ae-source ap-status--${statusOf(p)}`}>{STATUS_LABEL[statusOf(p)]}</span>
                 </td>
-                <td className="ap-actions">
-                  <button className="ui-btn ui-btn--small" onClick={() => setDialog({ kind: 'view', player: p })}>
-                    View
-                  </button>
-                  <button className="ui-btn ui-btn--small" onClick={() => setDialog({ kind: 'edit', player: p })}>
-                    <Icon name="edit" size={13} /> Edit
-                  </button>
-                  <button className="ui-btn ui-btn--small ui-btn--danger" onClick={() => remove(p)}>
-                    <Icon name="trash" size={13} /> Delete
-                  </button>
+                <td>{lastUpdate(p)}</td>
+                <td>
+                  <div className="ap-actions">
+                    <button className="ui-btn ui-btn--small ui-btn--primary" onClick={() => setDialog({ kind: 'edit', player: p })}>
+                      <Icon name="edit" size={13} /> Edit
+                    </button>
+                    <button className="ui-btn ui-btn--small ui-btn--danger" onClick={() => remove(p)}>
+                      <Icon name="trash" size={13} /> Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
             {!rows.length && (
               <tr>
-                <td className="ae-empty muted" colSpan={9}>
+                <td className="ae-empty muted" colSpan={12}>
                   {players.length ? 'No players match your search.' : 'No players yet. Add one with New player, or enter players in a tournament.'}
                 </td>
               </tr>
@@ -218,9 +225,6 @@ export function AllPlayersPage() {
         </table>
       </div>
 
-      {dialog?.kind === 'view' && (
-        <ViewPlayerDialog book={book} player={dialog.player} onEdit={() => setDialog({ kind: 'edit', player: dialog.player })} onClose={() => setDialog(null)} />
-      )}
       {(dialog?.kind === 'edit' || dialog?.kind === 'new') && (
         <EditPlayerDialog
           player={dialog.kind === 'edit' ? dialog.player : undefined}
@@ -230,72 +234,6 @@ export function AllPlayersPage() {
         />
       )}
     </div>
-  )
-}
-
-function ViewPlayerDialog({ book, player: p, onEdit, onClose }: { book: EventBook; player: Player; onEdit: () => void; onClose: () => void }) {
-  const { navigate } = useBrand()
-  const entered = enteredIn(book, p.id).sort((a, b) => b.event.startDate.localeCompare(a.event.startDate))
-  const line = (label: string, v: string) => (
-    <div className="ap-line">
-      <span>{label}</span>
-      <strong>{v || <span className="muted">—</span>}</strong>
-    </div>
-  )
-  return (
-    <Modal title={fullName(p)} onClose={onClose} width={560}>
-      <div className="modal-body">
-        <div className="ap-lines">
-          {line('Last name', p.lastName)}
-          {line('First name', p.firstName)}
-          {line('DOB', dmy(p.dob))}
-          {line('Gender', p.gender)}
-          {line('Federation', p.fed)}
-          {line('Title', p.title)}
-          {line('FIDE ID', p.fideId)}
-          {line('K FIDE', p.kFide)}
-          {line('FIDE Standard', p.fideStandard)}
-          {line('FIDE Rapid', p.fideRapid)}
-          {line('FIDE Blitz', p.fideBlitz)}
-          {line('ACF ID', p.acfId)}
-          {line('ACF rating', p.acfRating)}
-          {line('Email', p.email)}
-        </div>
-        <h3 className="ap-sub">Tournaments</h3>
-        {entered.length ? (
-          <ul className="ap-events">
-            {entered.map(({ event: e, entry }) => {
-              const div = detailsOf(e).divisions.find((d) => d.id === entry.division)?.name
-              return (
-                <li key={e.id}>
-                  <button
-                    className="link-btn"
-                    onClick={() => {
-                      onClose()
-                      navigate({ page: 'events', eventId: e.id, eventEdit: false, eventEntries: false })
-                    }}
-                  >
-                    {e.name}
-                  </button>
-                  <span className="muted small">
-                    {dateRangeLabel(e)}
-                    {div ? ` · ${div}` : ''}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        ) : (
-          <p className="muted small">Not entered in any tournament yet.</p>
-        )}
-      </div>
-      <div className="modal-actions">
-        <button className="ui-btn" onClick={onClose}>Close</button>
-        <button className="ui-btn ui-btn--primary" onClick={onEdit}>
-          <Icon name="edit" size={14} /> Edit
-        </button>
-      </div>
-    </Modal>
   )
 }
 

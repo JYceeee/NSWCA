@@ -8,7 +8,6 @@ import { SITE_DEFAULTS } from '../data/siteDefaults'
 import { builtinPalettes } from '../data/palettes'
 import { builtinTypography } from '../data/typography'
 import { collectGarbage } from '../lib/db'
-import { IS_PREVIEW } from '../layout/MobilePreview'
 import { ApiError, apiGet, apiPost, LOCAL_ONLY } from '../lib/api'
 import { ALL_GRANTS, allows, type Grants } from '../data/permissions'
 import type { Applied, BarVersion, BrandTab, CalEvent, MenuTab, PageId, Profile, SavedState, SliceKey, Slices } from '../types'
@@ -36,7 +35,7 @@ export function builtinSlices(): Slices {
   }
 }
 
-const PAGE_IDS: PageId[] = ['home', 'contact', 'brand', 'menu', 'pages', 'documents', 'players', 'events', 'byes', 'profile', 'users', 'approvals', 'enquiries', 'emails']
+const PAGE_IDS: PageId[] = ['home', 'contact', 'brand', 'menu', 'pages', 'documents', 'players', 'events', 'results', 'byes', 'profile', 'users', 'approvals', 'enquiries', 'emails']
 
 const SLICES: SliceKey[] = ['palettes', 'typography', 'backgrounds', 'logos', 'menus', 'events', 'pages']
 
@@ -128,9 +127,11 @@ interface UiState {
   eventEdit: boolean
   /** The tournament's All entries page (#events/<id>/entries). */
   eventEntries: boolean
+  /** The division shown on a tournament's Results page (#results/<id>/<division>). */
+  eventDivision: string
 }
 
-export type NavTarget = Partial<Pick<UiState, 'page' | 'tab' | 'menuTab' | 'eventId' | 'eventEdit' | 'eventEntries'>>
+export type NavTarget = Partial<Pick<UiState, 'page' | 'tab' | 'menuTab' | 'eventId' | 'eventEdit' | 'eventEntries' | 'eventDivision'>>
 /** Why leaving was stopped – decides the prompt and what Apply / Discard do. */
 export type GuardReason = 'menu' | 'events' | 'pages' | 'profile' | 'details' | 'entries'
 
@@ -149,6 +150,7 @@ function initialUi(saved: SavedState): UiState {
     eventId: null,
     eventEdit: false,
     eventEntries: false,
+    eventDivision: '',
   }
   let ui = fresh
   try {
@@ -171,7 +173,10 @@ function initialUi(saved: SavedState): UiState {
 
 const TABS: BrandTab[] = ['palette', 'logos', 'typography', 'components']
 const MENU_TABS: MenuTab[] = ['sidebar', 'topbar', 'footer']
-const CONTENT_PAGES: PageId[] = ['home', 'contact', 'pages', 'documents', 'players', 'events', 'byes', 'profile', 'users', 'approvals', 'enquiries', 'emails']
+/** Phones, tablets and other touch devices. */
+const MOBILE_DEVICE = '(max-width: 900px), (pointer: coarse)'
+const VERSION_CHECK_MS = 30000
+const CONTENT_PAGES: PageId[] = ['home', 'contact', 'pages', 'documents', 'players', 'events', 'results', 'byes', 'profile', 'users', 'approvals', 'enquiries', 'emails']
 
 /** #palette … #components = Brand tabs, #menu/sidebar = Menu tabs, #events = a page. */
 function parseHash(h: string): NavTarget | null {
@@ -180,11 +185,14 @@ function parseHash(h: string): NavTarget | null {
   if (h.startsWith('menu/') && MENU_TABS.includes(h.slice(5) as MenuTab)) return { page: 'menu', menuTab: h.slice(5) as MenuTab }
   const ev = h.match(/^events\/([\w-]+)(\/edit|\/entries)?$/)
   if (ev) return { page: 'events', eventId: ev[1], eventEdit: ev[2] === '/edit', eventEntries: ev[2] === '/entries' }
+  const res = h.match(/^results\/([\w-]+)(?:\/([\w-]+))?$/)
+  if (res) return { page: 'results', eventId: res[1], eventDivision: res[2] ?? '' }
   if (CONTENT_PAGES.includes(h as PageId)) return { page: h as PageId, eventId: null, eventEdit: false, eventEntries: false }
   return null
 }
 
-export function hashFor(t: { page: PageId; tab: BrandTab; menuTab: MenuTab; eventId?: string | null; eventEdit?: boolean; eventEntries?: boolean }) {
+export function hashFor(t: { page: PageId; tab: BrandTab; menuTab: MenuTab; eventId?: string | null; eventEdit?: boolean; eventEntries?: boolean; eventDivision?: string }) {
+  if (t.page === 'results' && t.eventId) return `results/${t.eventId}${t.eventDivision ? `/${t.eventDivision}` : ''}`
   if (t.page === 'events' && t.eventId) return `events/${t.eventId}${t.eventEdit ? '/edit' : t.eventEntries ? '/entries' : ''}`
   return t.page === 'brand' ? t.tab : t.page === 'menu' ? `menu/${t.menuTab}` : t.page
 }
@@ -337,7 +345,9 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
   const say = useCallback((text: string) => setNotice((n) => ({ text, nonce: (n?.nonce ?? 0) + 1 })), [])
 
   /** Takes the server's state: saved and the snapshot become it; drafts with unsaved edits are kept. */
+  const siteVersion = useRef<number | null>(null)
   const adopt = useCallback((s: ServerState) => {
+    siteVersion.current = s.siteVersion ?? null
     const next = fromServer(s)
     snap.current = next
     setServer(s)
@@ -371,11 +381,7 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
   }, [adopt, say])
 
   useEffect(() => {
-    // The phone preview only reads – it reloads when the main window's copy changes.
-    if (LOCAL_ONLY || IS_PREVIEW) {
-      if (IS_PREVIEW && !LOCAL_ONLY) setStatus(serverRef.current ? 'online' : 'offline')
-      return
-    }
+    if (LOCAL_ONLY) return
     refresh()
     // Offline: try again every 30 s and when the browser is back online.
     const back = () => statusRef.current === 'offline' && refresh()
@@ -386,6 +392,49 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('online', back)
     }
   }, [refresh])
+
+  /** Saved here but not on the server yet: taking the server's copy now would lose them. */
+  const unsent = useCallback(() => {
+    const s = serverRef.current
+    return busy.current || !snap.current || !!nextOp(savedRef.current, snap.current, { playersVisible: !!s?.playersVisible, signedIn: !!s?.user })
+  }, [])
+
+  /** Takes the server's latest, unless that could lose work: a save on its way, or a page holding its own unsaved copy. */
+  const catchUp = useCallback(async () => {
+    const { eventEdit, eventEntries } = uiRef.current
+    if (LOCAL_ONLY || statusRef.current !== 'online' || eventEdit || eventEntries || unsent()) return
+    const s = await apiGet<ServerState>('state')
+    if (!unsent()) adopt(s)
+  }, [adopt, unsent])
+
+  // Phones and tablets get the latest data with every page they open.
+  const firstPage = useRef(true)
+  useEffect(() => {
+    if (firstPage.current) return void (firstPage.current = false)
+    if (window.matchMedia(MOBILE_DEVICE).matches) catchUp().catch(() => {})
+  }, [ui.page, ui.eventId, ui.eventEdit, ui.eventEntries, catchUp])
+
+  // Every open page notices when site content was saved: on coming back to the tab, and every so often while it's in view.
+  useEffect(() => {
+    if (LOCAL_ONLY) return
+    const check = async () => {
+      if (document.hidden || statusRef.current !== 'online') return
+      try {
+        const { version } = await apiGet<{ version: number | null }>('version')
+        if (version !== siteVersion.current) await catchUp()
+      } catch {
+        // Missed: the next check tries again.
+      }
+    }
+    const t = window.setInterval(check, VERSION_CHECK_MS)
+    window.addEventListener('focus', check)
+    document.addEventListener('visibilitychange', check)
+    return () => {
+      clearInterval(t)
+      window.removeEventListener('focus', check)
+      document.removeEventListener('visibilitychange', check)
+    }
+  }, [catchUp])
 
   /** Sends saved changes one by one until the server has them all. */
   const flush = useCallback(async () => {
@@ -424,7 +473,6 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
   }, [refresh, say])
 
   useEffect(() => {
-    if (IS_PREVIEW) return
     if (LOCAL_ONLY) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
@@ -484,7 +532,6 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
   }, [hash])
 
   useEffect(() => {
-    if (IS_PREVIEW) return
     try {
       localStorage.setItem(UI_KEY, JSON.stringify(ui))
     } catch {
@@ -493,7 +540,7 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
   }, [ui])
 
   useEffect(() => {
-    if (!IS_PREVIEW) collectGarbage(referencedAssets(saved))
+    collectGarbage(referencedAssets(saved))
     // Only on first load: unsaved uploads from a previous session are orphans.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -521,7 +568,7 @@ export function BrandStoreProvider({ children }: { children: ReactNode }) {
     const u0 = uiRef.current
     // Choosing a page (from a menu) opens it at its start: the calendar, not an event.
     // An event view not named in the target is closed (details, editor, entries are one at a time).
-    const next = t.page && !('eventId' in t) ? { eventId: null, eventEdit: false, eventEntries: false, ...t } : 'eventId' in t ? { eventEdit: false, eventEntries: false, ...t } : t
+    const next = t.page && !('eventId' in t) ? { eventId: null, eventEdit: false, eventEntries: false, eventDivision: '', ...t } : 'eventId' in t ? { eventEdit: false, eventEntries: false, eventDivision: '', ...t } : t
     if (
       (next.page && next.page !== u0.page) ||
       ('eventId' in next && next.eventId !== u0.eventId) ||

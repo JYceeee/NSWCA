@@ -1,5 +1,4 @@
 import { NAV, pageLabel, type NavItem } from '../data/menus'
-import { IS_PREVIEW } from './MobilePreview'
 import { useBrand, useSession } from '../store/BrandStore'
 import type { PageId } from '../types'
 
@@ -9,7 +8,7 @@ export const IS_SITE_TAB = new URLSearchParams(window.location.search).has('site
 /** Where an admin works: side bar only. Local-only mode has no accounts, so it stays the site. */
 export function useAdminPortal() {
   const { user, status } = useSession()
-  return user?.role === 'admin' && status !== 'local' && !IS_SITE_TAB && !IS_PREVIEW
+  return user?.role === 'admin' && status !== 'local' && !IS_SITE_TAB
 }
 
 /** The website tab, or any tab that isn't the portal, moves to the portal. */

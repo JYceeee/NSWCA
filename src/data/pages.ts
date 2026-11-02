@@ -92,7 +92,7 @@ export const SECTION_KINDS: { kind: SectionKind; label: string }[] = [
 ]
 
 /** The non-admin pages: these can be ticked "Add section". */
-export const SECTION_PAGES: PageId[] = ['home', 'events', 'byes', 'players', 'contact', 'profile']
+export const SECTION_PAGES: PageId[] = ['home', 'events', 'results', 'byes', 'players', 'contact', 'profile']
 
 /** Pages with no fixed content of their own: only these can have a Landing, which sits at the very top. */
 export const LANDING_PAGES: PageId[] = ['home']

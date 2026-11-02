@@ -18,7 +18,7 @@ export interface ComponentDef {
   id: string
   name: string
   description: string
-  kind: 'button' | 'pill' | 'card' | 'section' | 'darkBand' | 'link' | 'sidebar' | 'formField'
+  kind: 'button' | 'pill' | 'card' | 'section' | 'darkBand' | 'link' | 'sidebar' | 'formField' | 'table'
   groups: FieldGroup[]
 }
 
@@ -77,6 +77,65 @@ function pill(id: string, name: string, description: string, label: string, bg: 
   }
 }
 
+const select = (key: string, label: string, def: string, options: [string, string][]): FieldDef => ({ key, label, type: 'select', default: def, options: options.map(([value, label]) => ({ value, label })) })
+
+interface TableDefaults {
+  header: [bg: ColorRef, text: ColorRef, style: string, upper: boolean]
+  body: [bg: ColorRef, text: ColorRef, style: string]
+  border: ColorRef
+  borderWidth: number
+  padding: [y: number, x: number]
+  align: 'left' | 'center'
+  /** Every other row (Striped table). */
+  stripe?: ColorRef
+  /** The heading row above a group of rows (Bordered table). */
+  group?: [bg: ColorRef, text: ColorRef, style: string]
+}
+
+/** A table's text: a font from Typography, its size (empty = the font's own) and how it's drawn. */
+const tableText = (key: string, style: string): FieldDef[] => [
+  textStyle(key, 'Font', style, 'Picked from Typography'),
+  optNum(`${key}Size`, 'Text size', 'Leave empty to use the font’s size'),
+  select(`${key}Look`, 'Style', 'font', [['font', 'As font'], ['regular', 'Regular'], ['bold', 'Bold'], ['italic', 'Italic'], ['boldItalic', 'Bold italic']]),
+]
+
+function table(id: string, name: string, description: string, d: TableDefaults): ComponentDef {
+  return {
+    id, name, description, kind: 'table',
+    groups: [
+      {
+        label: 'Header row',
+        fields: [
+          color('headerBg', 'Background', d.header[0]), color('headerText', 'Text', d.header[1]), ...tableText('headerStyle', d.header[2]),
+          select('headerCase', 'Letters', d.header[3] ? 'uppercase' : 'none', [['none', 'As typed'], ['uppercase', 'Uppercase']]),
+        ],
+      },
+      { label: 'Body rows', fields: [color('bodyBg', 'Background', d.body[0]), color('bodyText', 'Text', d.body[1]), ...tableText('bodyStyle', d.body[2])] },
+      ...(d.stripe ? [{ label: 'Stripes', fields: [color('stripeBg', 'Every other row', d.stripe)] }] : []),
+      ...(d.group ? [{ label: 'Group row', fields: [color('groupBg', 'Background', d.group[0]), color('groupText', 'Text', d.group[1]), ...tableText('groupStyle', d.group[2])] }] : []),
+      { label: 'Lines', fields: [color('border', 'Line colour', d.border), num('borderWidth', 'Line width', d.borderWidth, 'px', 6), num('radius', 'Corner radius', 0, 'px', 32)] },
+      {
+        label: 'Layout',
+        fields: [num('paddingY', 'Cell padding (vertical)', d.padding[0], 'px', 32), num('paddingX', 'Cell padding (horizontal)', d.padding[1], 'px', 48), select('align', 'Text alignment', d.align, [['left', 'Left'], ['center', 'Centre']])],
+      },
+    ],
+  }
+}
+
+/** Players' chess titles: a squarer pill, with its own border for women's titles (WGM, WIM…). */
+function titlePill(): ComponentDef {
+  return {
+    id: 'pillTitle', name: 'Title pill', description: "Players' chess titles (GM, IM, WFM) in pairings, results, entries and profiles.", kind: 'pill',
+    groups: [
+      { label: 'Colours', fields: [color('bg', 'Background', t('secondary')), color('text', 'Text', t('on-secondary')), color('border', 'Border', t('secondary'))] },
+      { label: "Women's titles", fields: [color('womenBorder', 'Border', t('danger'), 'WGM, WIM, WFM and WCM')] },
+      { label: 'Shape', fields: [num('radius', 'Corner radius', 5, 'px', 999), num('borderWidth', 'Border width', 2, 'px', 4), num('paddingX', 'Padding (horizontal)', 6, 'px', 32), num('paddingY', 'Padding (vertical)', 1, 'px', 16), num('minWidth', 'Minimum width', 40, 'px', 120)] },
+      textGroup('pill'),
+      { label: 'Sample', fields: [text('label', 'Sample label', 'IM')] },
+    ],
+  }
+}
+
 export const COMPONENTS: ComponentDef[] = [
   button('btnPrimary', 'Primary button', 'Main actions (Save, Add, Apply).', 'Primary', {
     bg: t('primary'), text: t('on-primary'), border: t('primary'),
@@ -87,6 +146,11 @@ export const COMPONENTS: ComponentDef[] = [
     bg: t('secondary'), text: t('on-secondary'), border: t('secondary'),
     hoverBg: t('secondary-hover'), hoverText: t('on-secondary'), hoverBorder: t('secondary-hover'),
     pressedBg: t('secondary-hover'),
+  }),
+  button('btnOutline', 'Outline button', 'Everyday actions on the site (Categories, Import, Cancel).', 'Categories', {
+    bg: t('card'), text: t('heading'), border: t('border'),
+    hoverBg: t('panel'), hoverText: t('heading'), hoverBorder: t('border-strong'),
+    pressedBg: t('border'),
   }),
   button('btnSoft', 'Soft button', 'Low-emphasis actions (Cancel, Filters).', 'Soft', {
     bg: t('secondary-tint'), text: t('secondary'), border: t('secondary-tint'),
@@ -102,6 +166,7 @@ export const COMPONENTS: ComponentDef[] = [
   pill('pillSuccess', 'Success pill', 'Positive states (Confirmed, Paid).', 'Confirmed', t('success-tint'), t('success')),
   pill('pillWarning', 'Warning pill', 'In-between states (Pending, In progress).', 'Pending', t('warning-tint'), t('warning')),
   pill('pillDanger', 'Danger pill', 'Problem states (Disputed, Error).', 'Disputed', t('danger-tint'), t('danger')),
+  titlePill(),
   {
     id: 'card', name: 'Card', description: 'White content cards.', kind: 'card',
     groups: [
@@ -167,6 +232,21 @@ export const COMPONENTS: ComponentDef[] = [
     ],
   },
 ]
+
+COMPONENTS.push(
+  table('plainTable', 'Plain table', 'Lined table on tournament pages: Dates & schedule, Divisions, Entry fees.', {
+    header: [t('card', 0), t('muted'), 'caption', true], body: [t('card', 0), t('heading'), 'table'],
+    border: t('border-light'), borderWidth: 1, padding: [9, 10], align: 'left',
+  }),
+  table('borderedTable', 'Bordered table', 'Grid with a line round every cell: the Results list.', {
+    header: [t('card'), t('heading'), 'h3', false], body: [t('card'), t('heading'), 'p1'], group: [t('panel'), t('heading'), 'h3'],
+    border: t('border'), borderWidth: 1, padding: [12, 16], align: 'center',
+  }),
+  table('stripedTable', 'Striped table', 'Player tables: standings, pairings and results, Byes and All entries.', {
+    header: [t('card'), t('heading'), 'h3', false], body: [t('card'), t('heading'), 'table'], stripe: t('secondary', 12),
+    border: t('border-light'), borderWidth: 1, padding: [8, 10], align: 'left',
+  }),
+)
 
 COMPONENTS.push({
   id: 'formField', name: 'Form field', description: 'Labelled inputs and dropdowns, e.g. the Profile form.', kind: 'formField',

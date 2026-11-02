@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAssetUrl } from '../brand/shared'
 import { useDialogs } from '../components/Dialogs'
 import { Icon } from '../components/Icon'
+import { TitlePill } from '../components/TitlePill'
 import { Popover } from '../components/Popover'
 import { AU_STATES, COUNTRIES, countryName, dialCode, FEDERATIONS, fedCode } from '../data/countries'
 import { fmtDate, toDate } from '../data/events'
@@ -351,7 +352,7 @@ function ViewProfile({ p, onEdit, onJoinRenew }: { p: Profile; onEdit?: () => vo
             <Row label="FIDE number" value={dash(p.fideId)} />
             <Row label="ACF ID" value={dash(p.acfId)} />
             <Row label="Federation" value={(p.federation || fedCode(p.citizenship)).toUpperCase() || '—'} />
-            <Row label="Title" value={dash(p.title ?? '')} />
+            <Row label="Title" value={dash(p.title ?? '')} show={p.title ? <TitlePill title={p.title} /> : undefined} />
             <Row label="FIDE Standard" value={dash(p.fideStandard ?? '')} />
             <Row label="FIDE Rapid" value={dash(p.fideRapid ?? '')} />
             <Row label="FIDE Blitz" value={dash(p.fideBlitz ?? '')} />
@@ -390,14 +391,14 @@ function Card({ title, order, action, children }: { title: string; order: number
   )
 }
 
-function Row({ label, value, multiline, extra }: { label: string; value: string; multiline?: boolean; extra?: ReactNode }) {
+function Row({ label, value, multiline, extra, show }: { label: string; value: string; multiline?: boolean; extra?: ReactNode; show?: ReactNode }) {
   return (
     <div className="pf-row">
       <dt>
         {label}
         {extra}
       </dt>
-      <dd className={[value === '—' && 'pf-empty', multiline && 'pf-multiline'].filter(Boolean).join(' ')}>{value}</dd>
+      <dd className={[value === '—' && 'pf-empty', multiline && 'pf-multiline'].filter(Boolean).join(' ')}>{show ?? value}</dd>
     </div>
   )
 }

@@ -7,7 +7,7 @@ import { dateRangeLabel, fmtDate } from '../data/events'
 import { PageHead } from '../site/PageHead'
 import { uid, useSession } from '../store/BrandStore'
 import type { CalEvent, EventEntry } from '../types'
-import { byeFor, byeValues, halfByeBlock, isReleased, roundCount } from './byes'
+import { byeFor, byeValues, halfByeBlock, isPaired, roundCount } from './byes'
 import { useEventBook } from './useEventBook'
 
 /** Every player's byes, one row each, once a tournament is chosen. */
@@ -81,8 +81,7 @@ function ByesTable({ event }: { event: CalEvent }) {
   const firstAsked = (x: EventEntry) => byesOf(x).map((b) => b.at).sort()[0]
   /** Every bye of the player handled; a new one has no mark, so the row goes back to Undone. */
   const isUpdated = (x: EventEntry) => byesOf(x).length > 0 && byesOf(x).every((b) => b.done)
-  const key = fideRatingFor(detailsOf(event)).key
-  const rating = (x: EventEntry) => x[key] || x.acfRating || 'unrated'
+  const rating = (x: EventEntry) => x[fideRatingFor(detailsOf(event), x.division).key] || x.acfRating || 'unrated'
 
   const players = [...(event.entries ?? [])].sort((a, b) => {
     if (sort) return (sort === 'asc' ? 1 : -1) * a.name.localeCompare(b.name)
@@ -116,7 +115,7 @@ function ByesTable({ event }: { event: CalEvent }) {
   return (
     <div className="pg-panel">
       <div className="pg-grid-wrap">
-        <table className="pg-grid by-grid">
+        <table className="pg-grid by-grid tbl-striped tbl-own-size">
           <thead>
             <tr>
               <th aria-sort={sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : 'none'}>
@@ -130,8 +129,8 @@ function ByesTable({ event }: { event: CalEvent }) {
                 </button>
               </th>
               {rounds.map((r) => (
-                <th key={r} className="pg-c" title={isReleased(event, r) ? 'Paired – locked' : undefined}>
-                  R{r} {isReleased(event, r) && <Icon name="check" size={12} />}
+                <th key={r} className="pg-c" title={isPaired(event, r) ? 'Paired – locked' : undefined}>
+                  R{r} {isPaired(event, r) && <Icon name="check" size={12} />}
                 </th>
               ))}
               <th>Status</th>
@@ -150,7 +149,7 @@ function ByesTable({ event }: { event: CalEvent }) {
                   </td>
                   {rounds.map((r) => {
                     const bye = byeFor(event, p.id, r)
-                    const locked = !manage || isReleased(event, r)
+                    const locked = !manage || isPaired(event, r, p.division)
                     const v = bye ? values.get(bye.id) : undefined
                     const cell = `${p.id}:${r}`
                     const halfBlock = halfByeBlock(event, p.id, r)

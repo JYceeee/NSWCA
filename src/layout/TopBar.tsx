@@ -14,8 +14,8 @@ const CLOSE_DELAY = 160
 const CLEAR_TINT = 45
 
 /** Full-width bar above the sidebar: logo + parent tabs, sub tabs in a dropdown (hover or click, as the sidebar). */
-export const TopBar = forwardRef<HTMLElement, { menu: MenuSet; version: BarVersion; clear?: boolean; toggle: ReactNode; onPreview?: () => void }>(function TopBar(
-  { menu, version, clear, toggle, onPreview },
+export const TopBar = forwardRef<HTMLElement, { menu: MenuSet; version: BarVersion; clear?: boolean; toggle: ReactNode }>(function TopBar(
+  { menu, version, clear, toggle },
   ref,
 ) {
   const { ui, navigate } = useBrand()
@@ -146,11 +146,6 @@ export const TopBar = forwardRef<HTMLElement, { menu: MenuSet; version: BarVersi
           )
         })}
       </nav>
-      {onPreview && (
-        <button className="tb-preview" style={{ ...ty(`${p}-tab`), color: c('text'), '--hov': c('hover') } as CSSProperties} onClick={onPreview}>
-          <Icon name="phone" size={16} /> Preview mobile
-        </button>
-      )}
       {/* AccountBar puts My Account / Register here. */}
       <div id="tb-account" className="tb-account" />
     </header>

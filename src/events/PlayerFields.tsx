@@ -3,9 +3,9 @@ import { TITLES } from './pairings'
 import { checkPlayer } from './players'
 import { splitName } from './playerList'
 
-type Key = Exclude<keyof Player, 'id' | 'added'>
+type Key = Exclude<keyof Player, 'id' | 'added' | 'updated'>
 export type PlayerDraft = Partial<Record<Key, string>>
-export type PlayerDetails = Omit<Player, 'id' | 'added'>
+export type PlayerDetails = Omit<Player, 'id' | 'added' | 'updated'>
 
 export const draftOf = (p?: Player): PlayerDraft => (p ? { ...p } : { fed: 'AUS' })
 

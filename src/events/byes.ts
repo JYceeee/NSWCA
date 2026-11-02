@@ -1,20 +1,29 @@
 // Rounds and byes of a tournament.
 import { parseISO } from 'date-fns'
-import { detailsOf } from '../data/eventDetails'
+import { allSchedules, detailsOf, scheduleOf, type ScheduleRow } from '../data/eventDetails'
 import type { CalEvent, EventBye } from '../types'
 
-/** Scheduled rounds in date order: round number = position. */
-export function scheduledRounds(e: CalEvent): { round: number; start: Date | null; label: string }[] {
-  return [...detailsOf(e).schedule]
+const inOrder = (rows: ScheduleRow[]) =>
+  [...rows]
     .filter((r) => r.date)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
     .map((r, i) => ({ round: i + 1, start: r.date ? parseISO(`${r.date}T${r.time || '00:00'}`) : null, label: r.round || `Round ${i + 1}` }))
+
+/**
+ * Scheduled rounds in date order: round number = position. A division's own when rounds differ by division;
+ * with no division named, the division with the most rounds.
+ */
+export function scheduledRounds(e: CalEvent, division?: string): { round: number; start: Date | null; label: string }[] {
+  const d = detailsOf(e)
+  const lists = division === undefined ? allSchedules(d) : [scheduleOf(d, division)]
+  return lists.map(inOrder).reduce((a, b) => (b.length > a.length ? b : a), [])
 }
 
 export const roundCount = (e: CalEvent) => Math.max(scheduledRounds(e).length, ...(e.pairings ?? []).map((r) => r.round), 0)
 
-/** A round is released once its pairings are on the tournament. */
-export const isReleased = (e: CalEvent, n: number) => !!e.pairings?.some((r) => r.round === n)
+/** A round's pairings are on the tournament, for this division (any division when none is named). Rounds from before divisions have none, and count for everyone. */
+export const isPaired = (e: CalEvent, n: number, division?: string) =>
+  !!e.pairings?.some((r) => r.round === n && (division === undefined || !r.division || r.division === division))
 
 /**
  * Value of every bye: ½ when the tournament allows half-point byes, the player hasn't used two yet,
@@ -23,12 +32,12 @@ export const isReleased = (e: CalEvent, n: number) => !!e.pairings?.some((r) => 
  */
 export function byeValues(e: CalEvent, extra?: EventBye): Map<string, 0 | 0.5> {
   const d = detailsOf(e)
-  const rounds = scheduledRounds(e)
   const all = [...(e.byes ?? []), ...(extra ? [extra] : [])].sort((a, b) => a.round - b.round || a.at.localeCompare(b.at))
   const used = new Map<string, number>()
   const out = new Map<string, 0 | 0.5>()
   for (const b of all) {
-    const deadline = rounds.find((r) => r.round === Math.max(1, b.round - 1))?.start
+    const division = e.entries?.find((x) => x.id === b.entryId)?.division
+    const deadline = scheduledRounds(e, division).find((r) => r.round === Math.max(1, b.round - 1))?.start
     const inTime = b.by === 'organiser' || !deadline || new Date(b.at) < deadline
     const n = used.get(b.entryId) ?? 0
     const half = b.value !== 0 && !!d.halfPointByes && inTime && n < 2

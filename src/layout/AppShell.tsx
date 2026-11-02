@@ -10,6 +10,7 @@ import { EventsPage } from '../events/EventsPage'
 import { DocumentsPage } from '../admin/DocumentsPage'
 import { AllPlayersPage } from '../admin/AllPlayersPage'
 import { ByesPage } from '../events/ByesPage'
+import { ResultsPage } from '../events/ResultsPage'
 import { ProfilePage } from '../profile/ProfilePage'
 import { ApprovalsPage } from '../admin/ApprovalsPage'
 import { UsersPage } from '../admin/UsersPage'
@@ -24,7 +25,6 @@ import { ADMIN_PAGES } from '../data/menus'
 import { useApplied, useBrand, useSelected, useSession } from '../store/BrandStore'
 import type { BarVersion, LogoSet, MenuSet } from '../types'
 import { AppFooter } from './Footer'
-import { IS_PREVIEW, MobilePreview, usePreviewSync } from './MobilePreview'
 import { AdminSidebar, AppSidebar } from './Sidebar'
 import { useDarkSurface } from './surface'
 import { TopBar } from './TopBar'
@@ -107,10 +107,6 @@ export function AppShell() {
   useFavicon(useApplied('logos'))
   const mobile = useMobile()
   const [navOpen, setNavOpen] = useState(false)
-  const [preview, setPreview] = useState(false)
-  usePreviewSync()
-  // Not on a phone, and not inside the preview itself.
-  const onPreview = mobile || IS_PREVIEW ? undefined : () => setPreview(true)
   const topRef = useRef<HTMLElement>(null)
   const footRef = useRef<HTMLElement>(null)
   const { topbar, footer } = menu
@@ -157,10 +153,10 @@ export function AppShell() {
 
   return (
     <div className={['shell', navOpen && 'shell--nav-open', showTop && 'shell--topbar'].filter(Boolean).join(' ')}>
-      {showTop && <TopBar ref={topRef} menu={menu} version={topVersion} clear={topClear} toggle={toggle} onPreview={portal ? undefined : onPreview} />}
+      {showTop && <TopBar ref={topRef} menu={menu} version={topVersion} clear={topClear} toggle={toggle} />}
       <div className="shell-body">
         {/* Off = no sidebar on desktop; phones keep the drawer, as the top bar hides its tabs there. */}
-        {portal ? <AdminSidebar onPreview={onPreview} /> : (menu.sidebar.enabled !== false || mobile) && <AppSidebar menu={menu} mobile={mobile} showHead={!topbar.enabled} onPreview={onPreview} />}
+        {portal ? <AdminSidebar /> : (menu.sidebar.enabled !== false || mobile) && <AppSidebar menu={menu} mobile={mobile} showHead={!topbar.enabled} />}
         {!showTop && toggle}
         <div className="nav-scrim" onClick={() => setNavOpen(false)} />
         <main className="app-main">
@@ -178,6 +174,7 @@ export function AppShell() {
                 {ui.page === 'brand' && <BrandPage />}
                 {ui.page === 'menu' && <MenuPage />}
                 {ui.page === 'events' && <EventsPage />}
+                {ui.page === 'results' && <ResultsPage />}
                 {ui.page === 'byes' && <ByesPage />}
                 {ui.page === 'documents' && <DocumentsPage />}
                 {ui.page === 'players' && <AllPlayersPage />}
@@ -193,7 +190,6 @@ export function AppShell() {
         </main>
       </div>
       <NavPrompt />
-      {preview && <MobilePreview hash={portal ? '#home' : window.location.hash} onClose={() => setPreview(false)} />}
     </div>
   )
 }

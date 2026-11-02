@@ -70,13 +70,14 @@ export async function readPairings(file: File): Promise<ParsedRound> {
     fed: sideCol(side, /^(fed|federation|country|nat)$/),
     sno: sideCol(side, /^(no|sno|snr|nr|num|id|startno)$/),
     title: sideCol(side, /^(tit|title|ti)$/),
+    rating: sideCol(side, /^(rtg|rating|elo|nrtg|irtg)$/),
   })
   const W = cols('w')
   const B = cols('b')
   const cell = (r: unknown[], i: number) => (i >= 0 ? str(r[i]) : '')
   const side = (r: unknown[], c: ReturnType<typeof cols>): PairingSide => {
     const t = splitTitle(cell(r, c.name), cell(r, c.title))
-    return { sno: cell(r, c.sno).replace(/\D/g, ''), title: t.title, name: t.name, fed: cell(r, c.fed).toUpperCase().slice(0, 3), pts: cell(r, c.pts).replace(',', '.') }
+    return { sno: cell(r, c.sno).replace(/\D/g, ''), title: t.title, name: t.name, fed: cell(r, c.fed).toUpperCase().slice(0, 3), rating: cell(r, c.rating).replace(/\D/g, ''), pts: cell(r, c.pts).replace(',', '.') }
   }
 
   const boards: PairingBoard[] = []
@@ -125,7 +126,7 @@ function trfPlayer(line: string, entries: EventEntry[]) {
     blocks.push(b.trim() ? { opponent: Number(b.slice(0, 4)) || 0, colour: b.slice(5, 6).toLowerCase(), result: b.slice(7, 8).toUpperCase() } : null)
   }
   const entry = (fideId && Number(fideId) ? entries.find((x) => x.fideId.trim() === fideId) : undefined) ?? entries.find((x) => nameKey(x.name) === nameKey(name))
-  return { sno: Number(line.slice(4, 8)), title: line.slice(10, 13).trim().toUpperCase(), name, fed: line.slice(53, 56).trim().toUpperCase(), entryId: entry?.id, blocks }
+  return { sno: Number(line.slice(4, 8)), title: line.slice(10, 13).trim().toUpperCase(), name, rating: line.slice(48, 52).trim(), fed: line.slice(53, 56).trim().toUpperCase(), entryId: entry?.id, blocks }
 }
 
 export function readTrf(text: string, entries: EventEntry[]) {
@@ -137,7 +138,7 @@ export function readTrf(text: string, entries: EventEntry[]) {
   const total = Math.max(...players.map((p) => p.blocks.length))
 
   for (let r = 0; r < total; r++) {
-    const side = (p: (typeof players)[number]): PairingSide => ({ entryId: p.entryId, sno: String(p.sno), title: p.title, name: p.name, fed: p.fed, pts: String(points.get(p.sno)) })
+    const side = (p: (typeof players)[number]): PairingSide => ({ entryId: p.entryId, sno: String(p.sno), title: p.title, name: p.name, fed: p.fed, rating: p.rating, pts: String(points.get(p.sno)) })
     const games: PairingBoard[] = []
     const byes: PairingBoard[] = []
     for (const p of players) {

@@ -20,6 +20,7 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { id: 'home', label: 'Home', icon: 'grid', page: 'home' },
   { id: 'events', label: 'Upcoming events', icon: 'calendar', page: 'events' },
+  { id: 'results', label: 'Results', icon: 'listNumber', page: 'results' },
   { id: 'byes', label: 'Byes', icon: 'clock', page: 'byes' },
   { id: 'players', label: 'All players', icon: 'users', page: 'players' },
   { id: 'contact', label: 'Contact Us', icon: 'mail', page: 'contact' },
@@ -45,6 +46,7 @@ export const NAV: NavItem[] = [
 export const ADMIN_NAV: { id: PageId; icon: string }[] = [
   { id: 'approvals', icon: 'check' },
   { id: 'events', icon: 'calendar' },
+  { id: 'results', icon: 'listNumber' },
   { id: 'byes', icon: 'clock' },
   { id: 'players', icon: 'users' },
   { id: 'brand', icon: 'brand' },

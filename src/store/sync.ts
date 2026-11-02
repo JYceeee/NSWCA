@@ -35,6 +35,8 @@ export interface ServerState {
   design: Pick<Slices, 'palettes' | 'typography' | 'backgrounds' | 'logos' | 'menus'>
   applied: Applied | null
   book: EventBook
+  /** Changes whenever site content is saved. Null until the first save. */
+  siteVersion?: number | null
   /** Page Config; null until an admin first saves it. */
   pages: PageConfig | null
   /** The player list was sent (organisers, admins). */

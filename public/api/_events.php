@@ -13,7 +13,7 @@ function norm_core(array $e): array
 {
     $d = isset($e['details']) && is_array($e['details']) ? $e['details'] : null;
     if ($d !== null)
-        $d['divisions'] = array_values(array_map(fn($x) => ['id' => s($x['id'] ?? ''), 'name' => s($x['name'] ?? ''), 'ratingRange' => s($x['ratingRange'] ?? '')],
+        $d['divisions'] = array_values(array_map(fn($x) => ['id' => s($x['id'] ?? ''), 'name' => s($x['name'] ?? ''), 'ratingRange' => s($x['ratingRange'] ?? ''), 'resultsUrl' => s($x['resultsUrl'] ?? '')],
             is_array($d['divisions'] ?? null) ? $d['divisions'] : []));
     return [
         'id' => s($e['id'] ?? ''),
@@ -33,7 +33,7 @@ function norm_core(array $e): array
     ];
 }
 
-const ENTRY_TEXT = ['name', 'email', 'fideId', 'acfId', 'fideStandard', 'fideRapid', 'fideBlitz', 'acfRating', 'fed', 'dob', 'gender', 'title', 'kFide', 'division', 'at'];
+const ENTRY_TEXT = ['name', 'email', 'fideId', 'acfId', 'fideStandard', 'fideRapid', 'fideBlitz', 'acfRating', 'fed', 'state', 'dob', 'gender', 'title', 'kFide', 'division', 'at'];
 
 function norm_entry(array $x): array
 {
@@ -60,7 +60,7 @@ function norm_bye(array $b): array
 function norm_side(?array $x): ?array
 {
     if ($x === null) return null;
-    return ['entryId' => s($x['entryId'] ?? '') ?: null, 'sno' => s($x['sno'] ?? ''), 'title' => s($x['title'] ?? ''), 'name' => s($x['name'] ?? ''), 'fed' => s($x['fed'] ?? ''), 'pts' => s($x['pts'] ?? '')];
+    return ['entryId' => s($x['entryId'] ?? '') ?: null, 'sno' => s($x['sno'] ?? ''), 'title' => s($x['title'] ?? ''), 'name' => s($x['name'] ?? ''), 'fed' => s($x['fed'] ?? ''), 'rating' => s($x['rating'] ?? ''), 'pts' => s($x['pts'] ?? '')];
 }
 
 function norm_board(array $b): array
@@ -70,6 +70,7 @@ function norm_board(array $b): array
         'white' => norm_side(is_array($b['white'] ?? null) ? $b['white'] : []),
         'black' => norm_side(is_array($b['black'] ?? null) ? $b['black'] : null),
         'result' => s($b['result'] ?? ''),
+        'releasedResult' => s($b['releasedResult'] ?? ''),
         'byeKind' => in_array($b['byeKind'] ?? null, ['pab', 'half', 'zero'], true) ? $b['byeKind'] : null,
     ];
 }
@@ -77,13 +78,25 @@ function norm_board(array $b): array
 function norm_round(array $r): array
 {
     return [
+        'division' => s($r['division'] ?? ''),
         'round' => (int) ($r['round'] ?? 0),
         'title' => s($r['title'] ?? ''),
         'fileName' => s($r['fileName'] ?? ''),
         'at' => s($r['at'] ?? ''),
+        'resultsAt' => s($r['resultsAt'] ?? ''),
         'boards' => array_values(array_map('norm_board', is_array($r['boards'] ?? null) ? $r['boards'] : [])),
         'generated' => (bool) ($r['generated'] ?? false),
     ];
+}
+
+function round_key(array $r): string
+{
+    return $r['division'] . ':' . $r['round'];
+}
+
+function round_order(array $a, array $b): int
+{
+    return [$a['division'], $a['round']] <=> [$b['division'], $b['round']];
 }
 
 function norm_event(array $e): array
@@ -93,7 +106,7 @@ function norm_event(array $e): array
     foreach (is_array($e['startNumbers'] ?? null) ? $e['startNumbers'] : [] as $id => $n) $sno[(string) $id] = (int) $n;
     ksort($sno);
     $rounds = array_map('norm_round', $list('pairings'));
-    usort($rounds, fn($a, $b) => $a['round'] <=> $b['round']);
+    usort($rounds, 'round_order');
     return [
         'core' => norm_core($e),
         'entries' => array_map('norm_entry', $list('entries')),
@@ -120,9 +133,9 @@ function load_events(?array $ids = null): array
     $divs = $by("SELECT * FROM event_divisions$where ORDER BY sort_order");
     $entries = $by("SELECT * FROM event_entries$where ORDER BY sort_order");
     $byes = $by("SELECT * FROM event_byes$where ORDER BY round_no, set_at");
-    $rounds = $by("SELECT * FROM pairing_rounds$where ORDER BY round_no");
+    $rounds = $by("SELECT * FROM pairing_rounds$where ORDER BY division_id, round_no");
     $boards = [];
-    foreach (rows("SELECT * FROM pairing_boards$where ORDER BY round_no, board_no", $p) as $b) $boards[$b['event_id']][$b['round_no']][] = $b;
+    foreach (rows("SELECT * FROM pairing_boards$where ORDER BY division_id, round_no, board_no", $p) as $b) $boards[$b['event_id']][$b['division_id']][$b['round_no']][] = $b;
     $arbs = $by("SELECT event_id, user_id FROM event_arbiters$where");
     $changes = [];
     foreach (rows("SELECT target_id FROM approvals WHERE kind = 'event_change' AND status = 'pending'") as $r) $changes[$r['target_id']] = true;
@@ -132,20 +145,20 @@ function load_events(?array $ids = null): array
         $id = $r['id'];
         $details = dec($r['details']);
         if (is_array($details))
-            $details['divisions'] = array_map(fn($d) => ['id' => $d['id'], 'name' => $d['name'], 'ratingRange' => $d['rating_range']], $divs[$id] ?? []);
+            $details['divisions'] = array_map(fn($d) => ['id' => $d['id'], 'name' => $d['name'], 'ratingRange' => $d['rating_range'], 'resultsUrl' => $d['results_url']], $divs[$id] ?? []);
         $sno = [];
         $ents = [];
         foreach ($entries[$id] ?? [] as $x) {
             if ($x['start_no'] !== null) $sno[$x['id']] = (int) $x['start_no'];
             $ents[] = norm_entry([
                 'id' => $x['id'], 'playerId' => $x['player_id'], 'name' => $x['name'], 'email' => $x['email'], 'fideId' => $x['fide_id'], 'acfId' => $x['acf_id'],
-                'fideStandard' => $x['fide_standard'], 'fideRapid' => $x['fide_rapid'], 'fideBlitz' => $x['fide_blitz'], 'acfRating' => $x['acf_rating'], 'fed' => $x['fed'],
+                'fideStandard' => $x['fide_standard'], 'fideRapid' => $x['fide_rapid'], 'fideBlitz' => $x['fide_blitz'], 'acfRating' => $x['acf_rating'], 'fed' => $x['fed'], 'state' => $x['state'],
                 'dob' => $x['dob'] ?? '', 'gender' => $x['gender'], 'title' => $x['title'], 'kFide' => $x['k_fide'], 'source' => $x['source'], 'division' => $x['division_id'], 'at' => $x['entered_at'],
             ]);
         }
         ksort($sno);
         $side = fn($b, $c) => $b[$c . '_name'] === null && $c === 'black' ? null
-            : norm_side(['entryId' => $b[$c . '_entry_id'], 'sno' => $b[$c . '_sno'], 'title' => $b[$c . '_title'], 'name' => $b[$c . '_name'], 'fed' => $b[$c . '_fed'], 'pts' => $b[$c . '_pts']]);
+            : norm_side(['entryId' => $b[$c . '_entry_id'], 'sno' => $b[$c . '_sno'], 'title' => $b[$c . '_title'], 'name' => $b[$c . '_name'], 'fed' => $b[$c . '_fed'], 'rating' => $b[$c . '_rating'], 'pts' => $b[$c . '_pts']]);
         $out[$id] = [
             'core' => norm_core([
                 'id' => $id, 'name' => $r['name'], 'startDate' => $r['start_date'], 'endDate' => $r['end_date'], 'allDay' => (bool) $r['all_day'],
@@ -156,9 +169,9 @@ function load_events(?array $ids = null): array
             'entries' => $ents,
             'byes' => array_map(fn($b) => norm_bye(['id' => $b['id'], 'entryId' => $b['entry_id'], 'round' => $b['round_no'], 'by' => $b['set_by'], 'at' => $b['set_at'], 'value' => $b['value'], 'done' => (bool) $b['done']]), $byes[$id] ?? []),
             'pairings' => array_map(fn($rd) => norm_round([
-                'round' => $rd['round_no'], 'title' => $rd['title'], 'fileName' => $rd['file_name'], 'at' => $rd['released_at'], 'generated' => (bool) $rd['is_generated'],
-                'boards' => array_map(fn($b) => ['board' => $b['board_no'], 'white' => $side($b, 'white'), 'black' => $side($b, 'black'), 'result' => $b['result'], 'byeKind' => $b['bye_kind']],
-                    $boards[$id][$rd['round_no']] ?? []),
+                'division' => $rd['division_id'], 'round' => $rd['round_no'], 'title' => $rd['title'], 'fileName' => $rd['file_name'], 'at' => $rd['released_at'], 'resultsAt' => $rd['results_released_at'], 'generated' => (bool) $rd['is_generated'],
+                'boards' => array_map(fn($b) => ['board' => $b['board_no'], 'white' => $side($b, 'white'), 'black' => $side($b, 'black'), 'result' => $b['result'], 'releasedResult' => $b['released_result'], 'byeKind' => $b['bye_kind']],
+                    $boards[$id][$rd['division_id']][$rd['round_no']] ?? []),
             ]), $rounds[$id] ?? []),
             'results' => dec($r['results']),
             'startNumbers' => $sno,
@@ -209,6 +222,13 @@ function sees_contacts(array $ev): bool
     return can('entries.manage', $ctx) || can('entries.export', $ctx) || can('page.players') || can('events.uploadPairings', $ctx);
 }
 
+/** Results not released yet are only sent to those who work on them. */
+function sees_draft_results(array $ev): bool
+{
+    $ctx = event_ctx($ev);
+    return can('results.manage', $ctx) || can('events.uploadPairings', $ctx);
+}
+
 function strip_nulls(array $a): array
 {
     return array_filter($a, fn($v) => $v !== null);
@@ -230,7 +250,8 @@ function event_out(array $ev): array
         return strip_nulls($x);
     }, $ev['entries']);
     $out['byes'] = array_map('strip_nulls', $ev['byes']);
-    $out['pairings'] = array_map(fn($r) => [...$r, 'boards' => array_map(fn($b) => strip_nulls([...$b, 'white' => strip_nulls($b['white']), 'black' => $b['black'] === null ? null : strip_nulls($b['black'])]) + ['black' => null], $r['boards'])], $ev['pairings']);
+    $drafts = sees_draft_results($ev);
+    $out['pairings'] = array_map(fn($r) => [...$r, 'boards' => array_map(fn($b) => strip_nulls([...$b, 'result' => $drafts ? $b['result'] : '', 'white' => strip_nulls($b['white']), 'black' => $b['black'] === null ? null : strip_nulls($b['black'])]) + ['black' => null], $r['boards'])], $ev['pairings']);
     if ($ev['results'] !== null) $out['results'] = $ev['results'];
     if ($ev['startNumbers']) $out['startNumbers'] = $ev['startNumbers'];
     $ctx = event_ctx($ev);
@@ -265,7 +286,7 @@ function save_event(array $ev, string $status, ?int $createdBy): void
     $reasons = [];
     foreach (rows('SELECT id, reason FROM event_byes WHERE event_id = ?', [$id]) as $r) $reasons[$r['id']] = $r['reason'];
     $auto = [];
-    foreach (rows('SELECT round_no, board_no, result FROM pairing_boards WHERE event_id = ? AND auto_forfeit = 1', [$id]) as $r) $auto[$r['round_no'] . ':' . $r['board_no']] = $r['result'];
+    foreach (rows('SELECT division_id, round_no, board_no, result FROM pairing_boards WHERE event_id = ? AND auto_forfeit = 1', [$id]) as $r) $auto[$r['division_id'] . ':' . $r['round_no'] . ':' . $r['board_no']] = $r['result'];
 
     q('INSERT INTO events (id, name, category_id, start_date, end_date, all_day, start_time, end_time, location, description, weekdays, member_only, citizens_only, details, results, status, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -279,14 +300,14 @@ function save_event(array $ev, string $status, ?int $createdBy): void
 
     q('DELETE FROM event_divisions WHERE event_id = ?', [$id]);
     foreach ($divisions as $i => $d)
-        q('INSERT INTO event_divisions (id, event_id, name, rating_range, sort_order) VALUES (?, ?, ?, ?, ?)', [$d['id'] ?: uid('div'), $id, $d['name'], $d['ratingRange'], $i]);
+        q('INSERT INTO event_divisions (id, event_id, name, rating_range, results_url, sort_order) VALUES (?, ?, ?, ?, ?, ?)', [$d['id'] ?: uid('div'), $id, $d['name'], $d['ratingRange'], mb_substr($d['resultsUrl'], 0, 500), $i]);
 
     q('DELETE FROM event_entries WHERE event_id = ?', [$id]);
     foreach ($ev['entries'] as $i => $x)
-        q('INSERT INTO event_entries (id, event_id, player_id, name, email, fide_id, acf_id, fide_standard, fide_rapid, fide_blitz, acf_rating, fed, dob, gender, title, k_fide, source, division_id, start_no, entered_at, sort_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        q('INSERT INTO event_entries (id, event_id, player_id, name, email, fide_id, acf_id, fide_standard, fide_rapid, fide_blitz, acf_rating, fed, state, dob, gender, title, k_fide, source, division_id, start_no, entered_at, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
             $x['id'], $id, $x['playerId'], $x['name'], $x['email'], $x['fideId'], $x['acfId'], $x['fideStandard'], $x['fideRapid'], $x['fideBlitz'], $x['acfRating'],
-            substr($x['fed'], 0, 3), sql_date($x['dob']), $x['gender'], $x['title'], $x['kFide'], $x['source'], $x['division'], $ev['startNumbers'][$x['id']] ?? null, $x['at'], $i,
+            substr($x['fed'], 0, 3), substr($x['state'], 0, 3), sql_date($x['dob']), $x['gender'], $x['title'], $x['kFide'], $x['source'], $x['division'], $ev['startNumbers'][$x['id']] ?? null, $x['at'], $i,
         ]);
 
     q('DELETE FROM event_byes WHERE event_id = ?', [$id]);
@@ -296,17 +317,17 @@ function save_event(array $ev, string $status, ?int $createdBy): void
 
     q('DELETE FROM pairing_rounds WHERE event_id = ?', [$id]);
     foreach ($ev['pairings'] as $r) {
-        q('INSERT INTO pairing_rounds (event_id, round_no, title, file_name, released_at, is_generated) VALUES (?, ?, ?, ?, ?, ?)', [$id, $r['round'], $r['title'], $r['fileName'], $r['at'], (int) $r['generated']]);
+        q('INSERT INTO pairing_rounds (event_id, division_id, round_no, title, file_name, released_at, results_released_at, is_generated) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [$id, $r['division'], $r['round'], $r['title'], $r['fileName'], $r['at'], $r['resultsAt'], (int) $r['generated']]);
         foreach ($r['boards'] as $b) {
             $w = $b['white'];
             $k = $b['black'];
-            $key = $r['round'] . ':' . $b['board'];
-            q('INSERT INTO pairing_boards (event_id, round_no, board_no, white_entry_id, white_sno, white_title, white_name, white_fed, white_pts,
-                 black_entry_id, black_sno, black_title, black_name, black_fed, black_pts, result, bye_kind, auto_forfeit)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-                $id, $r['round'], $b['board'], $w['entryId'], $w['sno'], $w['title'], $w['name'], substr($w['fed'], 0, 3), $w['pts'],
-                $k['entryId'] ?? null, $k['sno'] ?? null, $k['title'] ?? null, $k['name'] ?? null, $k === null ? null : substr($k['fed'], 0, 3), $k['pts'] ?? null,
-                $b['result'], $b['byeKind'], (int) (isset($auto[$key]) && $auto[$key] === $b['result']),
+            $key = round_key($r) . ':' . $b['board'];
+            q('INSERT INTO pairing_boards (event_id, division_id, round_no, board_no, white_entry_id, white_sno, white_title, white_name, white_fed, white_rating, white_pts,
+                 black_entry_id, black_sno, black_title, black_name, black_fed, black_rating, black_pts, result, released_result, bye_kind, auto_forfeit)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $id, $r['division'], $r['round'], $b['board'], $w['entryId'], $w['sno'], $w['title'], $w['name'], substr($w['fed'], 0, 3), substr($w['rating'], 0, 8), $w['pts'],
+                $k['entryId'] ?? null, $k['sno'] ?? null, $k['title'] ?? null, $k['name'] ?? null, $k === null ? null : substr($k['fed'], 0, 3), $k === null ? null : substr($k['rating'], 0, 8), $k['pts'] ?? null,
+                $b['result'], $b['releasedResult'], $b['byeKind'], (int) (isset($auto[$key]) && $auto[$key] === $b['result']),
             ]);
         }
     }
@@ -316,11 +337,11 @@ function save_event(array $ev, string $status, ?int $createdBy): void
  * Three-way merge of a list keyed by $key: the changes the app made (base -> next) are applied onto the database's
  * current list, so two people editing different entries don't overwrite each other. Returns [merged, changes].
  */
-function merge_list(array $base, array $next, array $cur, string $key, string $what): array
+function merge_list(array $base, array $next, array $cur, string|Closure $key, string $what): array
 {
     $index = function (array $list) use ($key) {
         $m = [];
-        foreach ($list as $x) $m[(string) $x[$key]] = $x;
+        foreach ($list as $x) $m[(string) ($key instanceof Closure ? $key($x) : $x[$key])] = $x;
         return $m;
     };
     [$B, $N, $C] = [$index($base), $index($next), $index($cur)];
@@ -349,6 +370,27 @@ function merge_one(mixed $base, mixed $next, mixed $cur, string $what): array
     if (same($base, $next)) return [$cur, false];
     if (!same($cur, $base) && !same($cur, $next)) fail(409, "Someone else changed $what at the same time. Reload to see their change, then try again.");
     return [$next, true];
+}
+
+/**
+ * Who may make a change to one round: importing pairings is one permission, entering and releasing results another.
+ * An import that changes who plays whom may clear a release, but never set one.
+ */
+function check_round_change(?array $b, ?array $n, array $ctx): void
+{
+    $shape = fn($r) => $r === null ? null : [...$r, 'resultsAt' => '', 'boards' => array_map(fn($x) => [...$x, 'result' => '', 'releasedResult' => ''], $r['boards'])];
+    $released = fn($r) => $r === null ? ['', []] : [$r['resultsAt'], array_column($r['boards'], 'releasedResult')];
+    $drafts = fn($r) => $r === null ? [] : array_column($r['boards'], 'result');
+
+    $imported = !same($shape($b), $shape($n));
+    if ($imported) need('events.uploadPairings', $ctx, 'change the pairings of this tournament');
+    $cleared = $n === null || ($n['resultsAt'] === '' && !array_filter(array_column($n['boards'], 'releasedResult'), 'strlen'));
+    if (!same($released($b), $released($n))) {
+        if (!($imported && $cleared)) need('results.manage', $ctx, 'release results in this tournament');
+    } elseif (!$imported && !same($drafts($b), $drafts($n))) {
+        need_any(['results.manage', 'events.uploadPairings'], $ctx, 'enter results in this tournament');
+    }
+    if ($n !== null && $n['resultsAt'] !== '' && in_array('', array_column($n['boards'], 'releasedResult'), true)) fail(400, 'Every board needs a result before a round is released.');
 }
 
 function is_mine(array $entry): bool
@@ -447,11 +489,9 @@ function put_event(?array $baseIn, array $nextIn): array
             else need('byes.manage', $ctx, 'set byes in this tournament');
         }
 
-        [$merged['pairings'], $changes] = merge_list($B['pairings'], $N['pairings'], $cur['pairings'], 'round', 'the pairings');
-        foreach ($changes as [, $b, $n]) {
-            need('events.uploadPairings', $ctx, 'change the pairings of this tournament');
-        }
-        usort($merged['pairings'], fn($a, $b) => $a['round'] <=> $b['round']);
+        [$merged['pairings'], $changes] = merge_list($B['pairings'], $N['pairings'], $cur['pairings'], Closure::fromCallable('round_key'), 'the pairings');
+        foreach ($changes as [, $b, $n]) check_round_change($b, $n, $ctx);
+        usort($merged['pairings'], 'round_order');
 
         [$merged['startNumbers'], $changed] = merge_one($B['startNumbers'], $N['startNumbers'], $cur['startNumbers'], 'the start numbers');
         if ($changed) need_any(['events.uploadPairings', 'entries.manage'], $ctx, 'change start numbers');
@@ -546,22 +586,25 @@ function set_arbiters(string $id, array $userIds): array
 
 // ---------- Disabled players ----------
 
-/** Rounds in the schedule (with a date), as the app's scheduledRounds. */
-function scheduled_round_count(array $ev): int
+/** Rounds in the schedule (with a date), as the app's scheduledRounds: the division's own when rounds differ by division. */
+function scheduled_round_count(array $ev, string $division): int
 {
-    $n = count(array_filter($ev['core']['details']['schedule'] ?? [], fn($r) => !empty($r['date'])));
+    $d = $ev['core']['details'] ?? [];
+    $named = array_filter($d['divisions'] ?? [], fn($x) => trim($x['name']) !== '');
+    $rows = ($d['sameRounds'] ?? true) === false && count($named) > 1 ? ($d['divisionSchedules'][$division] ?? []) : ($d['schedule'] ?? []);
+    $n = count(array_filter(is_array($rows) ? $rows : [], fn($r) => !empty($r['date'])));
     foreach ($ev['pairings'] as $r) $n = max($n, $r['round']);
     return $n;
 }
 
-/** The (event id, entry id) pairs of a user's tournament entries. */
+/** The event id, entry id and division of a user's tournament entries. */
 function user_entries(int $userId): array
 {
     $u = row('SELECT u.email, u.player_id, p.email AS profile_email FROM users u LEFT JOIN profiles p ON p.user_id = u.id WHERE u.id = ?', [$userId]);
     if (!$u) return [];
     $emails = array_values(array_filter(array_unique([strtolower(trim($u['email'])), strtolower(trim($u['profile_email'] ?? ''))])));
     $in = implode(',', array_fill(0, max(1, count($emails)), '?'));
-    return rows("SELECT event_id, id FROM event_entries WHERE (email <> '' AND LOWER(email) IN ($in)) OR (? IS NOT NULL AND player_id = ?)",
+    return rows("SELECT event_id, id, division_id FROM event_entries WHERE (email <> '' AND LOWER(email) IN ($in)) OR (? IS NOT NULL AND player_id = ?)",
         [...($emails ?: ['']), $u['player_id'], $u['player_id']]);
 }
 
@@ -577,8 +620,9 @@ function forfeit_disabled(int $userId): void
         $entry = $e['id'];
         q("UPDATE pairing_boards SET result = '- - +', auto_forfeit = 1 WHERE event_id = ? AND white_entry_id = ? AND black_name IS NOT NULL AND result = ''", [$e['event_id'], $entry]);
         q("UPDATE pairing_boards SET result = '+ - -', auto_forfeit = 1 WHERE event_id = ? AND black_entry_id = ? AND result = ''", [$e['event_id'], $entry]);
-        $paired = array_map(fn($r) => $r['round'], $ev['pairings']);
-        $total = scheduled_round_count($ev);
+        // Rounds from before divisions have none, and count for everyone.
+        $paired = array_map(fn($r) => $r['round'], array_filter($ev['pairings'], fn($r) => in_array($r['division'], ['', $e['division_id']], true)));
+        $total = scheduled_round_count($ev, $e['division_id']);
         for ($r = 1; $r <= $total; $r++) {
             if (in_array($r, $paired, true)) continue;
             if (value('SELECT 1 FROM event_byes WHERE event_id = ? AND entry_id = ? AND round_no = ?', [$e['event_id'], $entry, $r])) continue;
@@ -593,5 +637,5 @@ function unforfeit_enabled(int $userId): void
 {
     foreach (user_entries($userId) as $e)
         q("DELETE b FROM event_byes b WHERE b.event_id = ? AND b.entry_id = ? AND b.reason = 'disabled'
-           AND NOT EXISTS (SELECT 1 FROM pairing_rounds r WHERE r.event_id = b.event_id AND r.round_no = b.round_no)", [$e['event_id'], $e['id']]);
+           AND NOT EXISTS (SELECT 1 FROM pairing_rounds r WHERE r.event_id = b.event_id AND r.round_no = b.round_no AND r.division_id IN ('', ?))", [$e['event_id'], $e['id'], $e['division_id']]);
 }

@@ -4,7 +4,7 @@ import { Modal, useDialogs } from '../components/Dialogs'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { Icon } from '../components/Icon'
 import {
-  detailsOf, entriesCloseAt, TIME_TYPES, isAuNzCitizen, isDraft, isTournament, mapsUrl, memberOn, missingSections, SECTIONS, sectionFilled, type SectionDef,
+  detailsOf, entriesCloseAt, feesOf, perDivisionFees, perDivisionRounds, perDivisionTimeControl, timeControlOf, scheduleOf, SIDE_BY_SIDE, TIME_TYPES, type ScheduleRow, isAuNzCitizen, isDraft, isTournament, mapsUrl, memberOn, missingSections, SECTIONS, sectionFilled, type SectionDef,
 } from '../data/eventDetails'
 import { dateRangeLabel, fmtTime, timeLabel, toDate } from '../data/events'
 import { toHtml, toPlain } from '../lib/richtext'
@@ -13,12 +13,13 @@ import { emptyProfile, validate } from '../profile/ProfilePage'
 import { uid, useApplied, useBrand, useSession } from '../store/BrandStore'
 import { apiPost } from '../lib/api'
 import { StatusBadge } from './EventsPage'
-import type { CalEvent, EventDetailsData, EventEntry } from '../types'
+import type { CalEvent, DivisionFees, DivisionTimeControl, EventDetailsData, EventEntry } from '../types'
 import { EventForm } from './EventDialogs'
-import { fedCode } from '../data/countries'
+import { auStateCode, fedCode } from '../data/countries'
 import { entriesOpen } from '../data/permissions'
-import { byeFor, byeValues, isReleased, scheduledRounds } from './byes'
+import { byeFor, byeValues, isPaired, scheduledRounds } from './byes'
 import { PairingsSection } from './PairingsSection'
+import { resultLinks } from './standings'
 import { AddPlayerDialog, ImportPlayersDialog } from './PlayersDialogs'
 import { useEventBook } from './useEventBook'
 
@@ -143,9 +144,10 @@ function DetailsView({
   const showEntries = !d.registrationUrl.trim()
 
   const sections = tournament ? SECTIONS.filter((s) => s.kind !== 'url' && sectionFilled(d, s)) : []
+  const links = tournament ? resultLinks(event) : []
   const nav = [
     ...sections.map((s) => ({ id: s.id, label: s.label })),
-    ...(tournament ? [{ id: 'pairings', label: 'Pairings' }] : []),
+    ...(tournament ? [{ id: 'pairings', label: 'Pairings and Results' }] : []),
     ...(showEntries ? [{ id: 'entries', label: 'View entries' }] : []),
   ]
 
@@ -161,6 +163,7 @@ function DetailsView({
       fideBlitz: profile.fideBlitz ?? '',
       acfRating: profile.acfRating ?? '',
       fed: (profile.federation || fedCode(profile.citizenship)).toUpperCase(),
+      state: profile.country === 'AU' ? auStateCode(profile.state) : '',
       kFide: profile.kFide ?? '',
       title: profile.title ?? '',
       dob: profile.dob,
@@ -174,6 +177,18 @@ function DetailsView({
     toast('You’re entered')
   }
 
+
+  /** Our own page when anything is released here or there's a choice of divisions; otherwise straight to the one external link. */
+  const resultsButton =
+    links.length === 0 ? null : links.length === 1 && !links[0].released ? (
+      <a className="ui-btn ui-btn--primary ui-btn--small" href={links[0].url} target="_blank" rel="noreferrer">
+        Results <Icon name="link" size={14} />
+      </a>
+    ) : (
+      <button className="ui-btn ui-btn--primary ui-btn--small" onClick={() => navigate({ page: 'results', eventId: event.id, eventDivision: (links.find((x) => x.released) ?? links[0]).id })}>
+        Results
+      </button>
+    )
 
   const entryButton = (() => {
     switch (state.kind) {
@@ -298,13 +313,34 @@ function DetailsView({
               <p className="muted small">More details for this type of event are coming later.</p>
             </section>
           )}
-          {sections.map((s) => (
-            <section key={s.id} id={`ed-${s.id}`} className="ed-section">
-              <h2>{s.label}</h2>
-              <SectionView s={s} d={d} roundAction={(n) => <ByeButton event={event} round={n} setEvent={setEvent} />} />
-            </section>
-          ))}
-          {tournament && <PairingsSection event={event} you={profile.email} setEvent={setEvent} canEdit={can('events.uploadPairings', event)} />}
+          {sections.map((s) => {
+            const pair = SIDE_BY_SIDE.find((p) => p.includes(s.id))
+            const partner = pair && sections.find((x) => x.id !== s.id && pair.includes(x.id))
+            // A pair is drawn once, from its first section; when one is empty the other takes the full width.
+            if (partner && pair[1] === s.id) return null
+            const view = (x: SectionDef) => (
+              <section key={x.id} id={`ed-${x.id}`} className="ed-section">
+                {x.id === 'schedule' && resultsButton ? (
+                  <div className="ed-section-head">
+                    <h2>{x.label}</h2>
+                    <div className="ed-section-actions">{resultsButton}</div>
+                  </div>
+                ) : (
+                  <h2>{x.label}</h2>
+                )}
+                <SectionView s={x} d={d} roundAction={(n, div) => <ByeButton event={event} round={n} division={div} setEvent={setEvent} />} />
+              </section>
+            )
+            return partner ? (
+              <div key={s.id} className="ed-pair">
+                {view(s)}
+                {view(partner)}
+              </div>
+            ) : (
+              view(s)
+            )
+          })}
+          {tournament && <PairingsSection event={event} you={profile.email} setEvent={setEvent} canEdit={can('events.uploadPairings', event)} canResults={can('results.manage', event)} />}
         </div>
         {/* Right-hand column, stays in view while scrolling (below the sections on narrow screens). */}
         {showEntries && can('events.viewEntries') && (
@@ -390,33 +426,50 @@ function DivisionPicker({ d, onPick, onCancel }: { d: EventDetailsData; onPick: 
   )
 }
 
-function SectionView({ s, d, roundAction }: { s: SectionDef; d: EventDetailsData; roundAction?: (round: number) => ReactNode }) {
+/** One list of rounds in date order; roundAction adds a cell at the end of each (e.g. Byes). */
+function ScheduleTable({ rows, roundAction }: { rows: ScheduleRow[]; roundAction?: (round: number) => ReactNode }) {
+  return (
+    <table className="ed-table tbl-plain">
+      <thead>
+        <tr>
+          <th>Round</th>
+          <th>Date</th>
+          <th>Time</th>
+          {roundAction && <th aria-label="Byes" />}
+        </tr>
+      </thead>
+      <tbody>
+        {[...rows]
+          .filter((r) => r.date)
+          .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+          .map((r, i) => (
+            <tr key={r.id}>
+              <td>{r.round || '—'}</td>
+              <td>{format(toDate(r.date), 'EEE d MMM yyyy')}</td>
+              <td>{r.time ? fmtTime(r.time) : '—'}</td>
+              {roundAction && <td className="ed-round-action">{roundAction(i + 1)}</td>}
+            </tr>
+          ))}
+      </tbody>
+    </table>
+  )
+}
+
+function SectionView({ s, d, roundAction }: { s: SectionDef; d: EventDetailsData; roundAction?: (round: number, division?: string) => ReactNode }) {
   switch (s.kind) {
     case 'schedule':
+      if (!perDivisionRounds(d)) return <ScheduleTable rows={d.schedule} roundAction={roundAction && ((n) => roundAction(n))} />
       return (
-        <table className="ed-table">
-          <thead>
-            <tr>
-              <th>Round</th>
-              <th>Date</th>
-              <th>Time</th>
-              {roundAction && <th aria-label="Byes" />}
-            </tr>
-          </thead>
-          <tbody>
-            {[...d.schedule]
-              .filter((r) => r.date)
-              .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-              .map((r, i) => (
-                <tr key={r.id}>
-                  <td>{r.round || '—'}</td>
-                  <td>{format(toDate(r.date), 'EEE d MMM yyyy')}</td>
-                  <td>{r.time ? fmtTime(r.time) : '—'}</td>
-                  {roundAction && <td className="ed-round-action">{roundAction(i + 1)}</td>}
-                </tr>
-              ))}
-          </tbody>
-        </table>
+        <div className="ed-div-schedules">
+          {d.divisions
+            .filter((x) => x.name.trim())
+            .map((x) => (
+              <div key={x.id}>
+                <h3>{x.name}</h3>
+                <ScheduleTable rows={scheduleOf(d, x.id)} roundAction={roundAction && ((n) => roundAction(n, x.id))} />
+              </div>
+            ))}
+        </div>
       )
     case 'venue':
       return (
@@ -445,38 +498,22 @@ function SectionView({ s, d, roundAction }: { s: SectionDef; d: EventDetailsData
         </div>
       )
     case 'fees':
+      if (!perDivisionFees(d)) return <FeesView f={feesOf(d)} />
       return (
-        <>
-        <table className="ed-table">
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Amount</th>
-              <th>Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {d.fees
-              .filter((f) => f.type.trim())
-              .map((f) => (
-                <tr key={f.id}>
-                  <td>{f.type}</td>
-                  <td>{/^\d/.test(f.amount.trim()) ? `$${f.amount.trim()}` : f.amount}</td>
-                  <td>{f.note || '—'}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-          {d.feesNote && toPlain(d.feesNote).trim() && (
-            <div className="ed-venue-note">
-              <RichText text={d.feesNote} />
-            </div>
-          )}
-        </>
+        <div className="ed-div-schedules">
+          {d.divisions
+            .filter((x) => x.name.trim())
+            .map((x) => (
+              <div key={x.id}>
+                <h3>{x.name}</h3>
+                <FeesView f={feesOf(d, x.id)} />
+              </div>
+            ))}
+        </div>
       )
     case 'divisions':
       return (
-        <table className="ed-table">
+        <table className="ed-table tbl-plain">
           <thead>
             <tr>
               <th>Division</th>
@@ -498,17 +535,23 @@ function SectionView({ s, d, roundAction }: { s: SectionDef; d: EventDetailsData
     case 'datetime':
       return <p>{format(parseISO(d.entriesClose), 'EEEE d MMMM yyyy, h:mm a')}</p>
     default:
+      if (s.id === 'timeControl') {
+        if (!perDivisionTimeControl(d)) return <TimeControlView tc={timeControlOf(d)} />
+        return (
+          <div className="ed-div-schedules">
+            {d.divisions
+              .filter((x) => x.name.trim())
+              .map((x) => (
+                <div key={x.id}>
+                  <h3>{x.name}</h3>
+                  <TimeControlView tc={timeControlOf(d, x.id)} />
+                </div>
+              ))}
+          </div>
+        )
+      }
       return (
         <>
-          {s.id === 'timeControl' && !!d.timeTypes?.length && (
-            <div className="ed-time-types">
-              {TIME_TYPES.filter((t) => d.timeTypes!.includes(t.id)).map((t) => (
-                <span key={t.id} className="ev-badge">
-                  {t.label}
-                </span>
-              ))}
-            </div>
-          )}
           {s.id === 'byeRules' && (
             <p className="ed-bye-setting">
               {d.halfPointByes ? 'Requested byes are worth ½ point (up to two per player).' : 'Requested byes are zero-point byes.'}
@@ -520,24 +563,75 @@ function SectionView({ s, d, roundAction }: { s: SectionDef; d: EventDetailsData
   }
 }
 
+function FeesView({ f }: { f: DivisionFees }) {
+  return (
+    <>
+      <table className="ed-table tbl-plain">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          {f.fees
+            .filter((x) => x.type.trim())
+            .map((x) => (
+              <tr key={x.id}>
+                <td>{x.type}</td>
+                <td>{/^\d/.test(x.amount.trim()) ? `${x.amount.trim()}` : x.amount}</td>
+                <td>{x.note || '—'}</td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+      {f.feesNote && toPlain(f.feesNote).trim() && (
+        <div className="ed-venue-note">
+          <RichText text={f.feesNote} />
+        </div>
+      )}
+    </>
+  )
+}
+
+function TimeControlView({ tc }: { tc: DivisionTimeControl }) {
+  return (
+    <>
+      {tc.timeTypes.length > 0 && (
+        <div className="ed-time-types">
+          {TIME_TYPES.filter((t) => tc.timeTypes.includes(t.id)).map((t) => (
+            <span key={t.id} className="ev-badge">
+              {t.label}
+            </span>
+          ))}
+        </div>
+      )}
+      <RichText text={tc.timeControl} />
+    </>
+  )
+}
+
 /** "Byes" on each round row: entered players request a bye until that round is paired. Only the organiser can cancel it. */
-function ByeButton({ event, round, setEvent }: { event: CalEvent; round: number; setEvent: (fn: (e: CalEvent) => CalEvent) => void }) {
+/** division: the schedule table it's in, when rounds differ by division (only the player's own division gets the button). */
+function ByeButton({ event, round, division, setEvent }: { event: CalEvent; round: number; division?: string; setEvent: (fn: (e: CalEvent) => CalEvent) => void }) {
   const { saved } = useBrand()
   const { can } = useSession()
   const { confirm, toast } = useDialogs()
   const email = saved.profile?.email?.toLowerCase()
   const entry = email ? event.entries?.find((x) => x.email.toLowerCase() === email) : undefined
   if (!entry || !can('events.requestBye')) return null
+  if (division !== undefined && entry.division !== division) return null
   const bye = byeFor(event, entry.id, round)
   if (bye) {
     const v = byeValues(event).get(bye.id)
     return <span className="ev-badge">{v === 0.5 ? '½-point bye' : 'Zero-point bye'}</span>
   }
-  if (isReleased(event, round)) return <span className="muted small">Paired</span>
+  if (isPaired(event, round, entry.division)) return <span className="muted small">Paired</span>
   const request = async () => {
     const draft = { id: uid('bye'), entryId: entry.id, round, by: 'player' as const, at: new Date().toISOString() }
     const half = byeValues(event, draft).get(draft.id) === 0.5
-    const start = scheduledRounds(event).find((r) => r.round === round)?.label ?? `Round ${round}`
+    const start = scheduledRounds(event, entry.division).find((r) => r.round === round)?.label ?? `Round ${round}`
     const ok = await confirm({
       title: `Request a bye in ${start}?`,
       message: `${half ? 'This will be a half-point bye (½ point).' : 'This will be a zero-point bye (0 points).'} You won’t be paired in this round. Only the organiser can cancel a bye once it’s requested.`,
@@ -640,7 +734,7 @@ function DetailsEditor({ event, onDone, save }: { event: CalEvent; onDone: () =>
             {s.required && !sectionFilled(d, s) && <span className="ev-badge ev-badge--draft">Missing</span>}
           </h3>
           {s.hint && <p className="muted small ed-hint">{s.hint}</p>}
-          <SectionEditor s={s} d={d} set={set} />
+          <SectionEditor s={s} d={d} set={set} start={{ date: event.startDate, time: event.allDay ? '' : event.startTime }} />
         </section>
       ))}
       <div className="save-bar">
@@ -654,7 +748,219 @@ function DetailsEditor({ event, onDone, save }: { event: CalEvent; onDone: () =>
   )
 }
 
-function SectionEditor({ s, d, set }: { s: SectionDef; d: EventDetailsData; set: <K extends keyof EventDetailsData>(k: K, v: EventDetailsData[K]) => void }) {
+/** Dates & schedule: one list of rounds, or (box unticked) a list per division picked from the dropdown. */
+/** start: the event's first day and start time, given to a new Round 1. */
+function ScheduleEditor({ d, set, start }: { d: EventDetailsData; start: { date: string; time: string }; set: <K extends keyof EventDetailsData>(k: K, v: EventDetailsData[K]) => void }) {
+  const named = d.divisions.filter((x) => x.name.trim())
+  const [division, setDivision] = useState(named[0]?.id ?? '')
+  const per = perDivisionRounds(d)
+  const current = named.find((x) => x.id === division) ?? named[0]
+  const rows = per && current ? scheduleOf(d, current.id) : d.schedule
+  const setRows = (v: ScheduleRow[]) => (per && current ? set('divisionSchedules', { ...d.divisionSchedules, [current.id]: v }) : set('schedule', v))
+
+  const tick = (same: boolean) => {
+    if (!same) {
+      // Each division starts from the shared rounds.
+      const next = { ...d.divisionSchedules }
+      for (const x of named) if (!next[x.id]?.length) next[x.id] = d.schedule.map((r) => ({ ...r, id: uid('rd') }))
+      set('divisionSchedules', next)
+    }
+    set('sameRounds', same)
+  }
+
+  return (
+    <>
+      {named.length > 1 ? (
+        <div className="ed-rounds-for">
+          <label className="check ed-bye-tick">
+            <input type="checkbox" checked={!per} onChange={(e) => tick(e.target.checked)} />
+            Same rounds for all divisions
+          </label>
+          {per && current && (
+            <label className="ed-rounds-division">
+              <span className="ds-field-label">Division</span>
+              <select className="ui-input" value={current.id} onChange={(e) => setDivision(e.target.value)}>
+                {named.map((x) => (
+                  <option key={x.id} value={x.id}>{x.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      ) : (
+        <p className="muted small ed-hint">Add two or more divisions above to give each its own rounds.</p>
+      )}
+      <RowsEditor
+        key={per && current ? current.id : ''}
+        rows={rows}
+        onChange={setRows}
+        // A new round starts with the last round's date and time; Round 1 when the event starts.
+        blank={() => {
+          const last = rows[rows.length - 1]
+          return { id: uid('rd'), round: `Round ${rows.length + 1}`, date: last?.date ?? start.date, time: last?.time ?? start.time }
+        }}
+        addLabel="Add round"
+        columns={[
+          { key: 'round', label: 'Round', placeholder: 'E.g. Round 1' },
+          { key: 'date', label: 'Date', type: 'date' },
+          { key: 'time', label: 'Time', type: 'time' },
+        ]}
+      />
+    </>
+  )
+}
+
+/** Entry fees: one list for every division, or (box unticked) one per division picked from the dropdown. */
+function FeesEditor({ d, set }: { d: EventDetailsData; set: <K extends keyof EventDetailsData>(k: K, v: EventDetailsData[K]) => void }) {
+  const named = d.divisions.filter((x) => x.name.trim())
+  const [division, setDivision] = useState(named[0]?.id ?? '')
+  const per = perDivisionFees(d)
+  const current = named.find((x) => x.id === division) ?? named[0]
+  const own = per && current ? current.id : undefined
+  const f = feesOf(d, own)
+  const change = (patch: Partial<DivisionFees>) => {
+    if (own !== undefined) return set('divisionFees', { ...d.divisionFees, [own]: { ...f, ...patch } })
+    if (patch.fees) set('fees', patch.fees)
+    if (patch.feesNote !== undefined) set('feesNote', patch.feesNote)
+  }
+
+  const tick = (same: boolean) => {
+    if (!same) {
+      // Each division starts from the shared fees.
+      const next = { ...d.divisionFees }
+      for (const x of named) next[x.id] ??= { fees: d.fees.map((r) => ({ ...r, id: uid('fee') })), feesNote: d.feesNote ?? '' }
+      set('divisionFees', next)
+    }
+    set('sameFees', same)
+  }
+
+  return (
+    <>
+      {named.length > 1 ? (
+        <div className="ed-rounds-for">
+          <label className="check ed-bye-tick">
+            <input type="checkbox" checked={!per} onChange={(e) => tick(e.target.checked)} />
+            Same entry fees for all divisions
+          </label>
+          {per && current && (
+            <label className="ed-rounds-division">
+              <span className="ds-field-label">Division</span>
+              <select className="ui-input" value={current.id} onChange={(e) => setDivision(e.target.value)}>
+                {named.map((x) => (
+                  <option key={x.id} value={x.id}>{x.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      ) : (
+        <p className="muted small ed-hint">Add two or more divisions above to give each its own entry fees.</p>
+      )}
+      <RowsEditor
+        key={own ?? ''}
+        rows={f.fees}
+        onChange={(fees) => change({ fees })}
+        blank={() => ({ id: uid('fee'), type: '', amount: '', note: '' })}
+        addLabel="Add fee"
+        columns={[
+          { key: 'type', label: 'Type', placeholder: 'E.g. Adult, Junior, Member' },
+          { key: 'amount', label: 'Amount (AUD)', placeholder: 'E.g. 60' },
+          { key: 'note', label: 'Note', placeholder: 'Optional' },
+        ]}
+        after={
+          <div className="pf-edit-row ed-fees-note">
+            <span className="ds-field-label">Note</span>
+            <div className="pf-control">
+              <RichTextEditor
+                key={own ?? ''}
+                value={f.feesNote}
+                onChange={(feesNote) => change({ feesNote })}
+                ariaLabel={current && own ? `Entry fees note – ${current.name}` : 'Entry fees note'}
+                placeholder="Optional, e.g. how to pay, refunds"
+                minHeight={80}
+              />
+            </div>
+          </div>
+        }
+      />
+    </>
+  )
+}
+
+/** Time control: one for every division, or (box unticked) one per division picked from the dropdown. */
+function TimeControlEditor({ d, set }: { d: EventDetailsData; set: <K extends keyof EventDetailsData>(k: K, v: EventDetailsData[K]) => void }) {
+  const named = d.divisions.filter((x) => x.name.trim())
+  const [division, setDivision] = useState(named[0]?.id ?? '')
+  const per = perDivisionTimeControl(d)
+  const current = named.find((x) => x.id === division) ?? named[0]
+  const tc = timeControlOf(d, per && current ? current.id : undefined)
+  const change = (patch: Partial<DivisionTimeControl>) => {
+    if (per && current) return set('divisionTimeControls', { ...d.divisionTimeControls, [current.id]: { ...tc, ...patch } })
+    if (patch.timeControl !== undefined) set('timeControl', patch.timeControl)
+    if (patch.timeTypes) set('timeTypes', patch.timeTypes)
+  }
+
+  const tick = (same: boolean) => {
+    if (!same) {
+      // Each division starts from the shared time control.
+      const next = { ...d.divisionTimeControls }
+      for (const x of named) next[x.id] ??= { timeControl: d.timeControl, timeTypes: [...(d.timeTypes ?? [])] }
+      set('divisionTimeControls', next)
+    }
+    set('sameTimeControl', same)
+  }
+
+  return (
+    <>
+      {named.length > 1 ? (
+        <div className="ed-rounds-for">
+          <label className="check ed-bye-tick">
+            <input type="checkbox" checked={!per} onChange={(e) => tick(e.target.checked)} />
+            Same time control for all divisions
+          </label>
+          {per && current && (
+            <label className="ed-rounds-division">
+              <span className="ds-field-label">Division</span>
+              <select className="ui-input" value={current.id} onChange={(e) => setDivision(e.target.value)}>
+                {named.map((x) => (
+                  <option key={x.id} value={x.id}>{x.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      ) : (
+        <p className="muted small ed-hint">Add two or more divisions above to give each its own time control.</p>
+      )}
+      <div className="ed-time-ticks" role="group" aria-label="Time control type">
+        {TIME_TYPES.map((t) => (
+          <label key={t.id} className="check ed-bye-tick">
+            <input
+              type="checkbox"
+              checked={tc.timeTypes.includes(t.id)}
+              onChange={(e) => {
+                const on = new Set(tc.timeTypes)
+                if (e.target.checked) on.add(t.id)
+                else on.delete(t.id)
+                change({ timeTypes: TIME_TYPES.map((x) => x.id).filter((id) => on.has(id)) })
+              }}
+            />
+            {t.label}
+          </label>
+        ))}
+      </div>
+      <RichTextEditor
+        key={per && current ? current.id : ''}
+        value={tc.timeControl}
+        onChange={(timeControl) => change({ timeControl })}
+        ariaLabel={per && current ? `Time control – ${current.name}` : 'Time control'}
+        placeholder="Type here…"
+      />
+    </>
+  )
+}
+
+function SectionEditor({ s, d, set, start }: { s: SectionDef; d: EventDetailsData; start: { date: string; time: string }; set: <K extends keyof EventDetailsData>(k: K, v: EventDetailsData[K]) => void }) {
   const row = (label: string, control: ReactNode) => (
     <div className="pf-edit-row">
       <span className="ds-field-label">{label}</span>
@@ -663,23 +969,7 @@ function SectionEditor({ s, d, set }: { s: SectionDef; d: EventDetailsData; set:
   )
   switch (s.kind) {
     case 'schedule':
-      return (
-        <RowsEditor
-          rows={d.schedule}
-          onChange={(v) => set('schedule', v)}
-          // A new round starts with the last round's date and time.
-          blank={() => {
-            const last = d.schedule[d.schedule.length - 1]
-            return { id: uid('rd'), round: `Round ${d.schedule.length + 1}`, date: last?.date ?? '', time: last?.time ?? '' }
-          }}
-          addLabel="Add round"
-          columns={[
-            { key: 'round', label: 'Round', placeholder: 'E.g. Round 1' },
-            { key: 'date', label: 'Date', type: 'date' },
-            { key: 'time', label: 'Time', type: 'time' },
-          ]}
-        />
-      )
+      return <ScheduleEditor d={d} set={set} start={start} />
     case 'venue':
       return (
         <>
@@ -699,66 +989,29 @@ function SectionEditor({ s, d, set }: { s: SectionDef; d: EventDetailsData; set:
         </>
       )
     case 'fees':
-      return (
-        <RowsEditor
-          rows={d.fees}
-          onChange={(v) => set('fees', v)}
-          blank={() => ({ id: uid('fee'), type: '', amount: '', note: '' })}
-          addLabel="Add fee"
-          columns={[
-            { key: 'type', label: 'Type', placeholder: 'E.g. Adult, Junior, Member' },
-            { key: 'amount', label: 'Amount (AUD)', placeholder: 'E.g. 60' },
-            { key: 'note', label: 'Note', placeholder: 'Optional' },
-          ]}
-          after={
-            <div className="pf-edit-row ed-fees-note">
-              <span className="ds-field-label">Note</span>
-              <div className="pf-control">
-                <RichTextEditor value={d.feesNote ?? ''} onChange={(feesNote) => set('feesNote', feesNote)} ariaLabel="Entry fees note" placeholder="Optional, e.g. how to pay, refunds" minHeight={80} />
-              </div>
-            </div>
-          }
-        />
-      )
+      return <FeesEditor d={d} set={set} />
     case 'divisions':
       return (
         <RowsEditor
           rows={d.divisions}
           onChange={(v) => set('divisions', v)}
-          blank={() => ({ id: uid('div'), name: '', ratingRange: '' })}
+          blank={() => ({ id: uid('div'), name: '', ratingRange: '', resultsUrl: '' })}
           addLabel="Add division"
           columns={[
             { key: 'name', label: 'Division', placeholder: 'E.g. Open, Under 1600' },
             { key: 'ratingRange', label: 'Rating range', placeholder: 'Optional, e.g. Under 1600' },
+            { key: 'resultsUrl', label: 'External results link', placeholder: 'Optional, https://…' },
           ]}
         />
       )
     case 'datetime':
       return <input className="ds-input ed-datetime" type="datetime-local" value={d.entriesClose} onChange={(e) => set('entriesClose', e.target.value)} />
     case 'url':
-      return <input className="ds-input" type="url" value={d.registrationUrl} placeholder="https://…" onChange={(e) => set('registrationUrl', e.target.value)} />
+      return <input className="ds-input" type="url" value={s.id === 'resultsUrl' ? d.resultsUrl ?? '' : d.registrationUrl} placeholder="https://…" onChange={(e) => set(s.id === 'resultsUrl' ? 'resultsUrl' : 'registrationUrl', e.target.value)} />
     default:
+      if (s.id === 'timeControl') return <TimeControlEditor d={d} set={set} />
       return (
         <>
-          {s.id === 'timeControl' && (
-            <div className="ed-time-ticks" role="group" aria-label="Time control type">
-              {TIME_TYPES.map((t) => (
-                <label key={t.id} className="check ed-bye-tick">
-                  <input
-                    type="checkbox"
-                    checked={!!d.timeTypes?.includes(t.id)}
-                    onChange={(e) => {
-                      const on = new Set(d.timeTypes ?? [])
-                      if (e.target.checked) on.add(t.id)
-                      else on.delete(t.id)
-                      set('timeTypes', TIME_TYPES.map((x) => x.id).filter((id) => on.has(id)))
-                    }}
-                  />
-                  {t.label}
-                </label>
-              ))}
-            </div>
-          )}
           {s.id === 'byeRules' && (
             <label className="check ed-bye-tick">
               <input type="checkbox" checked={!!d.halfPointByes} onChange={(e) => set('halfPointByes', e.target.checked)} />
@@ -858,7 +1111,7 @@ function ArbitersButton({ event }: { event: CalEvent }) {
         <Modal title="Assign arbiters" onClose={() => setOpen(false)} width={440}>
           <div className="modal-body form">
             <p className="muted small" style={{ margin: 0 }}>
-              Assigned arbiters can set byes, pair rounds and enter results for {event.name}.
+              Assigned arbiters can set byes, import pairings and enter results for {event.name}.
             </p>
             {session.arbiters.length ? (
               <div className="ed-arbiters">
